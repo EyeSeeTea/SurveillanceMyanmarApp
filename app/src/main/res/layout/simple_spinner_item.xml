@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<org.eyeseetea.malariacare.views.TextCard xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@android:id/text1"
+    style="?android:attr/spinnerItemStyle"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:alpha="0.8"
+    android:ellipsize="marquee"
+    android:gravity="center"
+    android:singleLine="true"
+    android:textAlignment="gravity"
+    android:textSize="12sp"
+    app:tDimension="@string/font_size_level1"
+    app:tFontName="@string/medium_font_name" />

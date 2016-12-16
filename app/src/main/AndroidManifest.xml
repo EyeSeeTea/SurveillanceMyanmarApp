@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="org.eyeseetea.malariacare">
+
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission
+        android:name="android.permission.GET_ACCOUNTS"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.READ_CONTACTS"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.USE_CREDENTIALS"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        tools:node="remove" />
+
+    <application
+        android:name=".EyeSeeTeaApplication"
+        android:allowBackup="false"
+        android:icon="@drawable/pictureapp_logo"
+        android:label="@string/malaria_case_based_reporting"
+        android:theme="@style/EyeSeeTheme"
+        tools:replace="android:allowBackup, android:icon">
+
+        <service
+            android:name=".services.MonitorService"
+            android:exported="false" />
+        <service
+            android:name=".services.SurveyService"
+            android:exported="false" />
+        <service
+            android:name=".services.PushService"
+            android:exported="false" />
+
+        <meta-data
+            android:name="DATABASE"
+            android:value="malariacare.db" />
+        <meta-data
+            android:name="VERSION"
+            android:value="1" />
+        <meta-data
+            android:name="QUERY_LOG"
+            android:value="false" />
+        <meta-data
+            android:name="DOMAIN_PACKAGE_NAME"
+            android:value="org.eyeseetea.malariacare.database.model" />
+
+        <activity
+            android:name=".DashboardActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:label="@string/malaria_case_based_reporting"
+            android:windowSoftInputMode="adjustPan" />
+        <activity
+            android:name="org.eyeseetea.malariacare.views.Dialog"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:finishOnTaskLaunch="true"
+            android:label="@string/malaria_case_based_reporting"
+            android:parentActivityName=".DashboardActivity"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".DashboardActivity" />
+        </activity>
+
+        <activity
+            android:name=".ProgressActivity"
+            android:configChanges="orientation|screenSize"
+            android:label="@string/malaria_case_based_reporting" />
+
+        <activity
+            android:name=".SplashScreenActivity"
+            android:configChanges="orientation|screenSize"
+            android:label="@string/malaria_case_based_reporting"
+            android:theme="@style/SplashTheme">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name="org.eyeseetea.malariacare.SettingsActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:finishOnTaskLaunch="true"
+            android:label="@string/app_settings"
+            android:parentActivityName=".DashboardActivity">
+
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".DashboardActivity" />
+        </activity>
+
+        <activity
+            android:name=".LoginActivity"
+            android:finishOnTaskLaunch="true"
+            android:label="@string/malaria_case_based_reporting"
+            android:windowSoftInputMode="adjustResize|stateHidden">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".SettingsActivity" />
+        </activity>
+
+        <receiver android:name="org.eyeseetea.malariacare.receivers.AlarmPushReceiver" />
+
+        <meta-data
+            android:name="com.google.android.gms.version"
+            android:value="@integer/google_play_services_version" />
+
+        <meta-data
+            android:name="io.fabric.ApiKey"
+            android:value="0ff574d40926a9541f1c04cdd0a1ce3c03140d51" />
+    </application>
+
+</manifest>

@@ -1,3 +1,9 @@
+# iml files (idea)
+*.iml
+
+#Idea custom configuration
+.idea/
+
 # Built application files
 *.apk
 *.ap_
@@ -32,9 +38,8 @@ proguard/
 # Android Studio captures folder
 captures/
 
-# Intellij
-*.iml
-.idea/workspace.xml
-
 # Keystore files
 *.jks
+
+# Last commit file
+app/src/main/res/raw/lastcommit.txt
