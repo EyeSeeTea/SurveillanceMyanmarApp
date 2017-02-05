@@ -19,6 +19,7 @@
 
 package org.eyeseetea.malariacare.database.model;
 
+import android.content.Context;
 import android.util.Log;
 
 import com.raizlabs.android.dbflow.annotation.Column;
@@ -32,7 +33,9 @@ import com.raizlabs.android.dbflow.sql.language.Join;
 import com.raizlabs.android.dbflow.sql.language.Select;
 import com.raizlabs.android.dbflow.structure.BaseModel;
 
+import org.eyeseetea.malariacare.R;
 import org.eyeseetea.malariacare.database.AppDatabase;
+import org.eyeseetea.malariacare.database.utils.PreferencesState;
 import org.eyeseetea.malariacare.database.utils.Session;
 import org.eyeseetea.malariacare.layout.score.ScoreRegister;
 import org.eyeseetea.malariacare.utils.Constants;
@@ -63,7 +66,7 @@ public class Question extends BaseModel {
     /**
      * Constant that reflects a not visible question in information
      */
-    public static final int QUESTION_NO_COMPULSORY = 0;
+    public static final int QUESTION_NOT_COMPULSORY = 0;
     private static final String TAG = "Question";
     /**
      * Required to create a null Question value to enable caching when you're the last question.
@@ -277,6 +280,7 @@ public class Question extends BaseModel {
                 .querySingle();
     }
 
+
     /**
      * Find the first root question in the given tab
      *
@@ -378,6 +382,77 @@ public class Question extends BaseModel {
                         ColumnAlias.columnWithTable("qo", QuestionOption$Table.ID_OPTION)).eq(
                         id_option))
                 .count();
+    }
+
+    public static List<Question> getQuestionsByTab(Tab tab) {
+        //Select question from questionrelation where operator=1 and id_match in (..)
+        return new Select().from(Question.class).as("q")
+                //Question + QuestioRelation
+                .join(Header.class, Join.JoinType.LEFT).as("h")
+                .on(Condition.column(ColumnAlias.columnWithTable("q", Question$Table.ID_HEADER))
+                        .eq(ColumnAlias.columnWithTable("h", Header$Table.ID_HEADER)))
+                .join(Tab.class, Join.JoinType.LEFT).as("t")
+                .on(Condition.column(ColumnAlias.columnWithTable("h", Header$Table.ID_TAB))
+                        .eq(ColumnAlias.columnWithTable("t", Tab$Table.ID_TAB)))
+                .where(Condition.column(ColumnAlias.columnWithTable("t", Tab$Table.ID_TAB)).eq(
+                        tab.getId_tab()))
+                .orderBy(true, Question$Table.ORDER_POS)
+                .queryList();
+    }
+
+    /**
+     * Method to delete questions in cascade.
+     *
+     * @param questions The questions to delete.
+     */
+    public static void deleteQuestions(List<Question> questions) {
+        for (Question question : questions) {
+            QuestionOption.deleteQuestionOptions(question.getQuestionsOptions());
+            QuestionThreshold.deleteQuestionThresholds(question.getQuestionsThresholds());
+            QuestionRelation.deleteQuestionRelations(question.getQuestionRelations());
+            question.delete();
+        }
+    }
+
+    public static List<Option> getOptions(String UID) {
+        return new Select().from(Option.class).as("o")
+                .join(Answer.class, Join.JoinType.LEFT).as("a")
+                .on(Condition.column(ColumnAlias.columnWithTable("o", Option$Table.ID_ANSWER))
+                        .eq(ColumnAlias.columnWithTable("a", Answer$Table.ID_ANSWER)))
+                .join(Question.class, Join.JoinType.LEFT).as("q")
+                .on(Condition.column(ColumnAlias.columnWithTable("a", Answer$Table.ID_ANSWER))
+                        .eq(ColumnAlias.columnWithTable("q", Question$Table.ID_ANSWER)))
+                .where(Condition.column(
+                        ColumnAlias.columnWithTable("q", Question$Table.UID))
+                        .eq(UID)).queryList();
+    }
+
+    public static Answer getAnswer(String UID) {
+        return new Select().from(Answer.class).as("a")
+                .join(Question.class, Join.JoinType.LEFT).as("q")
+                .on(Condition.column(ColumnAlias.columnWithTable("a", Answer$Table.ID_ANSWER))
+                        .eq(ColumnAlias.columnWithTable("q", Question$Table.ID_ANSWER)))
+                .where(Condition.column(
+                        ColumnAlias.columnWithTable("q", Question$Table.UID))
+                        .eq(UID)).querySingle();
+    }
+
+    /**
+     * Method to get all questionOptions related by id
+     */
+    public List<QuestionOption> getQuestionsOptions() {
+        return new Select().from(QuestionOption.class)
+                .where(Condition.column(QuestionOption$Table.ID_QUESTION).eq(
+                        getId_question())).queryList();
+    }
+
+    /**
+     * Method to get all questionThresholds related by id
+     */
+    public List<QuestionThreshold> getQuestionsThresholds() {
+        return new Select().from(QuestionThreshold.class)
+                .where(Condition.column(QuestionThreshold$Table.ID_QUESTION).eq(
+                        getId_question())).queryList();
     }
 
     /**
@@ -515,14 +590,14 @@ public class Question extends BaseModel {
         return header;
     }
 
-    public void setHeader(Long id_header) {
-        this.id_header = id_header;
-        this.header = null;
-    }
-
     public void setHeader(Header header) {
         this.header = header;
         this.id_header = (header != null) ? header.getId_header() : null;
+    }
+
+    public void setHeader(Long id_header) {
+        this.id_header = id_header;
+        this.header = null;
     }
 
     public Integer getOutput() {
@@ -560,14 +635,14 @@ public class Question extends BaseModel {
         return answer;
     }
 
-    public void setAnswer(Long id_answer) {
-        this.id_answer = id_answer;
-        this.answer = null;
-    }
-
     public void setAnswer(Answer answer) {
         this.answer = answer;
         this.id_answer = (answer != null) ? answer.getId_answer() : null;
+    }
+
+    public void setAnswer(Long id_answer) {
+        this.id_answer = id_answer;
+        this.answer = null;
     }
 
     //Is necessary use the question relations.
@@ -582,15 +657,15 @@ public class Question extends BaseModel {
         return question;
     }
 
-    public void setQuestion(Long id_parent) {
-        this.id_parent = id_parent;
-        this.question = null;
-    }
-
     @Deprecated
     public void setQuestion(Question question) {
         this.question = question;
         this.id_parent = (question != null) ? question.getId_question() : null;
+    }
+
+    public void setQuestion(Long id_parent) {
+        this.id_parent = id_parent;
+        this.question = null;
     }
 
     public CompositeScore getCompositeScore() {
@@ -604,15 +679,15 @@ public class Question extends BaseModel {
         return compositeScore;
     }
 
-    public void setCompositeScore(Long id_composite_score) {
-        this.id_composite_score = id_composite_score;
-        this.compositeScore = null;
-    }
-
     public void setCompositeScore(CompositeScore compositeScore) {
         this.compositeScore = compositeScore;
         this.id_composite_score =
                 (compositeScore != null) ? compositeScore.getId_composite_score() : null;
+    }
+
+    public void setCompositeScore(Long id_composite_score) {
+        this.id_composite_score = id_composite_score;
+        this.compositeScore = null;
     }
 
     public List<QuestionRelation> getQuestionRelations() {
@@ -713,7 +788,9 @@ public class Question extends BaseModel {
      * Gets the value of this question in the current survey in session
      */
     public Value getValueBySession() {
-        return this.getValueBySurvey(Session.getSurvey());
+        Survey survey =
+                (!isStockQuestion()) ? Session.getMalariaSurvey() : Session.getStockSurvey();
+        return this.getValueBySurvey(survey);
     }
 
     /**
@@ -739,7 +816,11 @@ public class Question extends BaseModel {
      * Gets the option of this question in the current survey in session
      */
     public Option getOptionBySession() {
-        return this.getOptionBySurvey(Session.getSurvey());
+        if (!isStockQuestion()) {
+            return this.getOptionBySurvey(Session.getMalariaSurvey());
+        } else {
+            return this.getOptionBySurvey(Session.getStockSurvey());
+        }
     }
 
     /**
@@ -857,22 +938,6 @@ public class Question extends BaseModel {
         return this.sibling;
     }
 
-    public static List<Question> getQuestionsByTab(Tab tab) {
-        //Select question from questionrelation where operator=1 and id_match in (..)
-        return new Select().from(Question.class).as("q")
-                //Question + QuestioRelation
-                .join(Header.class, Join.JoinType.LEFT).as("h")
-                .on(Condition.column(ColumnAlias.columnWithTable("q", Question$Table.ID_HEADER))
-                        .eq(ColumnAlias.columnWithTable("h", Header$Table.ID_HEADER)))
-                .join(Tab.class, Join.JoinType.LEFT).as("t")
-                .on(Condition.column(ColumnAlias.columnWithTable("h", Header$Table.ID_TAB))
-                        .eq(ColumnAlias.columnWithTable("t", Tab$Table.ID_TAB)))
-                .where(Condition.column(ColumnAlias.columnWithTable("t", Tab$Table.ID_TAB)).eq(
-                        tab.getId_tab()))
-                .orderBy(true, Question$Table.ORDER_POS)
-                .queryList();
-    }
-
     public List<QuestionThreshold> getQuestionThresholds() {
 
         if (this.questionThresholds == null) {
@@ -883,6 +948,10 @@ public class Question extends BaseModel {
                     .queryList();
         }
         return this.questionThresholds;
+    }
+
+    private Context getContext(){
+        return PreferencesState.getInstance().getContext();
     }
 
     /**
@@ -1297,7 +1366,6 @@ public class Question extends BaseModel {
         return parents.get(0);
     }
 
-
     public boolean isAnswered() {
         return (this.getValueBySession() != null);
     }
@@ -1310,17 +1378,166 @@ public class Question extends BaseModel {
         return false;
     }
 
+    public boolean isStockQuestion() {
+        if (getHeader() == null) {
+            Header header = Header.findById(id_header);
+            setHeader(header);
+        }
+        if (getHeader() != null && getHeader().getName().equals("Stock")) {
+            return true;
+        }
+        return false;
+    }
+
+    public boolean isDynamicStockQuestion() {
+        if (getUid() != null) {
+            return getUid().equals(getContext().getString(R.string.dynamicStockQuestionUID));
+        }
+        return false;
+    }
+
+    /**
+     * Returns if the question is a counter or not
+     */
+    public boolean isACounter() {
+        QuestionRelation questionRelation = new Select().from(QuestionRelation.class).where(
+                Condition.column(QuestionRelation$Table.OPERATION).eq(
+                        QuestionRelation.COUNTER)).and(
+                Condition.column(QuestionRelation$Table.ID_QUESTION).eq(
+                        this.getId_question())).querySingle();
+        return questionRelation != null;
+    }
+
+    public boolean isTreatmentQuestion() {
+        if (uid.equals(getContext().getString(R.string.ageQuestionUID)) || uid.equals(
+                getContext().getString(R.string.ageQuestionUID)) || uid.equals(
+                getContext().getString(R.string.severeSymtomsQuestionUID))
+                || uid.equals(getContext().getString(R.string.rdtQuestionUID))) {
+            return true;
+        }
+        return false;
+    }
+
+    public boolean isOutStockQuestion() {
+        if (uid.equals(getContext().getString(R.string.outOfStockQuestionUID))) {
+            return true;
+        }
+        return false;
+    }
+
+    public boolean isRDT(){
+        return uid.equals(getContext().getString(R.string.rdtQuestionUID));
+    }
+
+    public boolean isStockRDT() {
+        return uid.equals(getContext().getString(R.string.stockRDTQuestionUID));
+    }
+
+    public boolean isInvalidCounter() {
+        return uid.equals(getContext().getString(R.string.confirmInvalidQuestionUID));
+    }
+
+    public boolean isACT6() {
+        return uid.equals(getContext().getString(R.string.act6QuestionUID));
+    }
+
+    public boolean isACT12() {
+        return uid.equals(getContext().getString(R.string.act12QuestionUID));
+    }
+
+    public boolean isACT18() {
+        return uid.equals(getContext().getString(R.string.act18QuestionUID));
+    }
+
+    public boolean isACT24() {
+        return uid.equals(getContext().getString(R.string.act24QuestionUID));
+    }
+
+    public boolean isCq() {
+        return uid.equals(getContext().getString(R.string.cqQuestionUID));
+    }
+
+    public boolean isPq() {
+        return uid.equals(getContext().getString(R.string.pqQuestionUID));
+    }
+
+    public boolean isInvalidRDTQuestion(){
+        return uid.equals(getContext().getString(R.string.confirmInvalidQuestionUID));
+    }
+
+    public static Question getRDTQuestion(){
+        Context context = PreferencesState.getInstance().getContext();
+        return findByUID(context.getString(R.string.rdtQuestionUID));
+    }
+
+    public static Question getStockRDTQuestion(){
+        Context context = PreferencesState.getInstance().getContext();
+        return findByUID(context.getString(R.string.stockRDTQuestionUID));
+    }
+
+    public static Question getInvalidCounterQuestion(){
+        Context context = PreferencesState.getInstance().getContext();
+        return findByUID(context.getString(R.string.confirmInvalidQuestionUID));
+    }
+
+    public static Question getPqQuestion(){
+        Context context = PreferencesState.getInstance().getContext();
+        return findByUID(context.getString(R.string.pqQuestionUID));
+    }
+
+    public static Question getCqQuestion(){
+        Context context = PreferencesState.getInstance().getContext();
+        return findByUID(context.getString(R.string.cqQuestionUID));
+    }
+
+    public static Question getACT6Question() {
+        Context context = PreferencesState.getInstance().getContext();
+        return findByUID(context.getString(R.string.act6QuestionUID));
+    }
+
+    public static Question getACT12Question() {
+        Context context = PreferencesState.getInstance().getContext();
+        return findByUID(context.getString(R.string.act12QuestionUID));
+    }
+
+    public static Question getACT18Question() {
+        Context context = PreferencesState.getInstance().getContext();
+        return findByUID(context.getString(R.string.act18QuestionUID));
+    }
+
+    public static Question getACT24Question() {
+        Context context = PreferencesState.getInstance().getContext();
+        return findByUID(context.getString(R.string.act24QuestionUID));
+    }
+
+    public static Question getOutOfStockQuestion() {
+        return findByUID("ZEopAP6tQN4");
+    }
+
     public boolean hasCompulsoryNotAnswered() {
         List<Question> questions = new ArrayList<>();
         //get all the questions in the same screen page
         if (getHeader().getTab().getType().equals(Constants.TAB_MULTI_QUESTION)) {
             questions = getQuestionsByTab(getHeader().getTab());
+        } else if (isDynamicStockQuestion()) {
+            List<Option> options = getAnswer().getOptions();
+            for (Option option : options) {
+                Question question = findByID(option.getId_option());
+                if (!isNotAnswered(question)) {
+                    questions.add(question);
+                }
+            }
         } else {
             questions.add(this);
         }
+        if (questions.size() == 0) {
+            return true;
+        }
         for (Question question : questions) {
+            Survey survey =
+                    (isStockQuestion()) ? Session.getStockSurvey() : Session.getMalariaSurvey();
             if (question.isCompulsory() && !question.isHiddenBySurveyAndHeader(
-                    Session.getSurvey()) && isNotAnswered(question)) {
+                    survey) && isNotAnswered(question)) {
                 return true;
             }
         }

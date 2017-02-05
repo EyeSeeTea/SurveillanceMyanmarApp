@@ -23,13 +23,12 @@ import org.eyeseetea.malariacare.database.model.Tab;
 import org.eyeseetea.malariacare.database.model.Value;
 import org.eyeseetea.malariacare.database.model.Value$Table;
 import org.eyeseetea.malariacare.database.utils.LocationMemory;
-import org.eyeseetea.malariacare.database.utils.PopulateDB;
+import org.eyeseetea.malariacare.database.utils.populatedb.PopulateDB;
 import org.eyeseetea.malariacare.database.utils.Session;
 import org.eyeseetea.malariacare.domain.entity.Credentials;
 import org.eyeseetea.malariacare.domain.usecase.InitUseCase;
 import org.eyeseetea.malariacare.domain.usecase.LoginUseCase;
 import org.eyeseetea.malariacare.utils.Constants;
-import org.eyeseetea.malariacare.views.TypefaceCache;
 
 import java.io.IOException;
 
@@ -56,7 +55,6 @@ public class SplashScreenActivity extends Activity {
     private void init() {
         Fabric.with(this, new Crashlytics());
         LocationMemory.getInstance().init(getApplicationContext());
-        TypefaceCache.getInstance().init(getApplicationContext());
 
         FlowManager.init(this, "_EyeSeeTeaDB");
         createDBIndexes();

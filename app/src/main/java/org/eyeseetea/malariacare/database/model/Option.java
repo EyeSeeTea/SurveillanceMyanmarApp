@@ -105,6 +105,12 @@ public class Option extends BaseModel {
                 .where(Condition.column(Option$Table.ID_OPTION).eq(id)).querySingle();
     }
 
+    public static Option findByCode(String code) {
+        return new Select()
+                .from(Option.class)
+                .where(Condition.column(Option$Table.CODE).eq(code)).querySingle();
+    }
+
     public Long getId_option() {
         return id_option;
     }
@@ -213,6 +219,50 @@ public class Option extends BaseModel {
     }
 
     /**
+     * Looks for the value with the given question  is the provided option
+     */
+    public static boolean findOption(Long idQuestion, Long idOption, Survey survey) {
+        Value value = Value.findValue(idQuestion, survey);
+        if (value == null) {
+            return false;
+        }
+
+        Long valueIdOption = value.getId_option();
+        return idOption.equals(valueIdOption);
+    }
+
+    /**
+     * Gets the Question of this Option in session
+     */
+    public Question getQuestionBySession() {
+        return getQuestionBySurvey(Session.getMalariaSurvey());
+    }
+
+    /**
+     * Gets the Question of this Option in the given Survey
+     */
+    public Question getQuestionBySurvey(Survey survey) {
+        if (survey == null) {
+            return null;
+        }
+        List<Value> returnValues = new Select().from(Value.class)
+                .indexedBy(Constants.VALUE_IDX)
+                .where(Condition.column(Value$Table.ID_OPTION).eq(this.getId_option()))
+                .and(Condition.column(Value$Table.ID_SURVEY).eq(survey.getId_survey())).queryList();
+
+        return (returnValues.size() == 0) ? null : returnValues.get(0).getQuestion();
+    }
+
+    public List<Value> getValues() {
+        if (values == null) {
+            values = new Select().from(Value.class)
+                    .where(Condition.column(Value$Table.ID_OPTION).eq(
+                            this.getId_option())).queryList();
+        }
+        return values;
+    }
+
+    /**
      * Checks if this option actives the children questions
      *
      * @return true: Children questions should be shown, false: otherwise.
@@ -230,14 +280,6 @@ public class Option extends BaseModel {
         return given.equals(name);
     }
 
-    public List<Value> getValues() {
-        if (values == null) {
-            values = new Select().from(Value.class)
-                    .where(Condition.column(Value$Table.ID_OPTION).eq(
-                            this.getId_option())).queryList();
-        }
-        return values;
-    }
 
     @Override
     public boolean equals(Object o) {
@@ -279,25 +321,5 @@ public class Option extends BaseModel {
                 '}';
     }
 
-    /**
-     * Gets the Question of this Option in session
-     */
-    public Question getQuestionBySession() {
-        return getQuestionBySurvey(Session.getSurvey());
-    }
 
-    /**
-     * Gets the Question of this Option in the given Survey
-     */
-    public Question getQuestionBySurvey(Survey survey) {
-        if (survey == null) {
-            return null;
-        }
-        List<Value> returnValues = new Select().from(Value.class)
-                .indexedBy(Constants.VALUE_IDX)
-                .where(Condition.column(Value$Table.ID_OPTION).eq(this.getId_option()))
-                .and(Condition.column(Value$Table.ID_SURVEY).eq(survey.getId_survey())).queryList();
-
-        return (returnValues.size() == 0) ? null : returnValues.get(0).getQuestion();
-    }
 }

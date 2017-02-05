@@ -33,6 +33,11 @@ import java.util.List;
 @Table(databaseName = AppDatabase.NAME)
 public class Header extends BaseModel {
 
+    /**
+     * Required for creating the dynamic treatment question in SCMM
+     */
+    public final static Long DYNAMIC_TREATMENT_HEADER_ID = 7l;
+
     @Column
     @PrimaryKey(autoincrement = true)
     long id_header;
@@ -65,11 +70,26 @@ public class Header extends BaseModel {
         setTab(tab);
     }
 
+    public static List<Header> getAllHeaders() {
+        return new Select().all().from(Header.class).queryList();
+    }
+
     public static Header findById(Long id) {
         return new Select()
                 .from(Header.class)
                 .where(Condition.column(Header$Table.ID_HEADER).eq(id)).querySingle();
     }
+
+    /**
+     * Method to delete headers in cascade
+     */
+    public static void deleteHeaders(List<Header> headers) {
+        for (Header header : headers) {
+            Question.deleteQuestions(header.getQuestions());
+            header.delete();
+        }
+    }
+
 
     public Long getId_header() {
         return id_header;
@@ -182,4 +202,6 @@ public class Header extends BaseModel {
                 ", id_tab=" + id_tab +
                 '}';
     }
+
+
 }
