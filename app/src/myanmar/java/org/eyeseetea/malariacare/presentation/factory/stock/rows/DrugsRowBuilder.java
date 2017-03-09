@@ -3,17 +3,13 @@ package org.eyeseetea.malariacare.presentation.factory.stock.rows;
 import android.content.Context;
 
 import org.eyeseetea.malariacare.R;
-import org.eyeseetea.malariacare.database.model.Survey;
+import org.eyeseetea.malariacare.data.database.model.Survey;
 import org.eyeseetea.malariacare.presentation.factory.stock.StockRowBuilder;
 import org.eyeseetea.malariacare.presentation.factory.stock.utils.SurveyStock;
 import org.eyeseetea.malariacare.utils.Constants;
 
 import java.util.ArrayList;
 import java.util.List;
-
-/**
- * Created by manuel on 29/12/16.
- */
 
 public class DrugsRowBuilder extends StockRowBuilder {
     public DrugsRowBuilder(String rowTitle, Context context) {
@@ -38,7 +34,7 @@ public class DrugsRowBuilder extends StockRowBuilder {
 
 
     @Override
-    protected Object updateColumn(Object currentValue, float newValue, SurveyStock surveyStock) {
+    protected Object updateColumn(Object currentValue, int newValue, SurveyStock surveyStock) {
         return null;
     }
 

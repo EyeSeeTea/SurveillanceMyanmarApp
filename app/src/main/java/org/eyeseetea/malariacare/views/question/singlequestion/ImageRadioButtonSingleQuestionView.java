@@ -8,9 +8,9 @@ import android.util.DisplayMetrics;
 import android.widget.LinearLayout;
 
 import org.eyeseetea.malariacare.R;
-import org.eyeseetea.malariacare.database.model.Option;
-import org.eyeseetea.malariacare.database.model.Question;
-import org.eyeseetea.malariacare.database.model.Value;
+import org.eyeseetea.malariacare.data.database.model.Option;
+import org.eyeseetea.malariacare.data.database.model.Question;
+import org.eyeseetea.malariacare.data.database.model.Value;
 import org.eyeseetea.malariacare.views.option.ImageRadioButtonOption;
 import org.eyeseetea.malariacare.views.question.AOptionQuestionView;
 import org.eyeseetea.malariacare.views.question.IQuestionView;
@@ -24,6 +24,7 @@ public class ImageRadioButtonSingleQuestionView extends AOptionQuestionView impl
     Question mQuestion;
 
     LinearLayout answersContainer;
+    private boolean optionSetBySavedValue = false;
 
     public ImageRadioButtonSingleQuestionView(Context context) {
         super(context);
@@ -82,9 +83,11 @@ public class ImageRadioButtonSingleQuestionView extends AOptionQuestionView impl
                     (ImageRadioButtonOption) answersContainer.getChildAt(i);
 
             if (imageRadioButtonOption.getOption().equals(value.getOption())) {
+                optionSetBySavedValue = true;
                 imageRadioButtonOption.setChecked(true);
             }
         }
+
     }
 
     @NonNull
@@ -137,6 +140,11 @@ public class ImageRadioButtonSingleQuestionView extends AOptionQuestionView impl
             if (imageRadioButton != optionView && optionView.isChecked()) {
                 optionView.setChecked(false);
             }
+        }
+        if (!optionSetBySavedValue) {
+            notifyAnswerChanged(imageRadioButton.getOption());
+        } else {
+            optionSetBySavedValue = false;
         }
 
         //TODO: Review architecture listeners

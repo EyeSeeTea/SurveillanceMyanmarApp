@@ -5,8 +5,9 @@ import android.support.annotation.Nullable;
 import com.google.common.base.Function;
 import com.google.common.collect.Maps;
 
-import org.eyeseetea.malariacare.database.model.Question;
-import org.eyeseetea.malariacare.database.model.Value;
+import org.eyeseetea.malariacare.data.database.model.Question;
+import org.eyeseetea.malariacare.data.database.model.Value;
+import org.eyeseetea.malariacare.data.database.utils.Session;
 import org.eyeseetea.malariacare.domain.entity.Survey;
 import org.eyeseetea.malariacare.utils.Constants;
 
@@ -30,8 +31,9 @@ public class CompletionSurveyUseCase extends ACompletionSurveyUseCase {
     }
 
     private Survey getSurveyWithStatusAndAnsweredRatio(long idSurvey) {
-        org.eyeseetea.malariacare.database.model.Survey surveyDB = org.eyeseetea.malariacare
-                .database.model.Survey.findById(idSurvey);
+        org.eyeseetea.malariacare.data.database.model.Survey surveyDB =
+                org.eyeseetea.malariacare.data
+                        .database.model.Survey.findById(idSurvey);
         Survey survey = new Survey(idSurvey);
         survey.setSurveyAnsweredRatio(surveyDB.reloadSurveyAnsweredRatio());
         surveyDB.updateSurveyStatus();
@@ -42,19 +44,27 @@ public class CompletionSurveyUseCase extends ACompletionSurveyUseCase {
     private void updateRDTStockQuestion(Survey survey) {
         if (survey.getStatus() == Constants.SURVEY_COMPLETED
                 || survey.getStatus() == Constants.SURVEY_SENT) {
-            org.eyeseetea.malariacare.database.model.Survey surveyDBMalaria =
-                    org.eyeseetea.malariacare
+            org.eyeseetea.malariacare.data.database.model.Survey surveyDBMalaria =
+                    org.eyeseetea.malariacare.data
                             .database.model.Survey.findById(survey.getId());
             List<Value> surveyValues = surveyDBMalaria.getValuesFromDB();
 
-            org.eyeseetea.malariacare.database.model.Survey surveyDBStock =
-                    org.eyeseetea.malariacare
-                            .database.model.Survey.getLastSurveyWithType(Constants.SURVEY_EXPENSE);
+            org.eyeseetea.malariacare.data.database.model.Survey surveyDBStock =
+                    org.eyeseetea.malariacare.data
+                            .database.model.Survey.getLastSurveyWithType(Constants.SURVEY_ISSUE);
 
-            Value rdtStockValue = new Value("1", Question.getStockRDTQuestion(), surveyDBStock);
+            Value rdtStockValue = Question.getStockRDTQuestion().insertValue("1",
+                    surveyDBStock);
 
             rdtStockValue.setValue(Integer.toString(rdtUsed(surveyValues)));
+
             rdtStockValue.save();
+
+            for (Question propagateQuestion : Question.getStockRDTQuestion()
+                    .getPropagationQuestions()) {
+                propagateQuestion.insertValue(rdtStockValue.getValue(),
+                        Session.getMalariaSurvey()).save();
+            }
         }
     }
 
@@ -67,13 +77,14 @@ public class CompletionSurveyUseCase extends ACompletionSurveyUseCase {
             int invalids;
             try {
                 invalids = Integer.parseInt(answersMap.get(confirmInvalid).getValue());
-            } catch (NumberFormatException exception){
+            } catch (NumberFormatException exception) {
                 invalids = 1;
             }
-            if (answersMap.get(rdtQuestion).getValue().equals("Invalid"))
+            if (answersMap.get(rdtQuestion).getValue().equals("Invalid")) {
                 rdtUsed = invalids;
-            else
+            } else {
                 rdtUsed += invalids;
+            }
         }
         return rdtUsed;
     }

@@ -3,7 +3,7 @@ package org.eyeseetea.malariacare.presentation.factory.stock.rows;
 import android.content.Context;
 
 import org.eyeseetea.malariacare.R;
-import org.eyeseetea.malariacare.database.model.Survey;
+import org.eyeseetea.malariacare.data.database.model.Survey;
 import org.eyeseetea.malariacare.presentation.factory.stock.StockRowBuilder;
 import org.eyeseetea.malariacare.presentation.factory.stock.utils.SurveyStock;
 import org.eyeseetea.malariacare.utils.Constants;
@@ -12,10 +12,6 @@ import org.eyeseetea.malariacare.utils.Utils;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-
-/**
- * Created by manuel on 29/12/16.
- */
 
 public class StatusRowBuilder extends StockRowBuilder {
     private float[] balanceSurvey;
@@ -48,22 +44,22 @@ public class StatusRowBuilder extends StockRowBuilder {
     }
 
     @Override
-    protected Object updateColumn(Object currentValue, float newValue, SurveyStock surveyStock) {
+    protected Object updateColumn(Object currentValue, int newValue, SurveyStock surveyStock) {
         return "";
     }
 
     @Override
-    protected Object updateColumn(Object oldValue, float surveyValue, SurveyStock surveyStock,
+    protected Object updateColumn(Object oldValue, int surveyValue, SurveyStock surveyStock,
             int position) {
         Survey survey = surveyStock.getSurvey();
-        Date maxBalanceDate = Survey.getLastDateForSurveyType(Constants.SURVEY_BALANCE);
+        Date maxBalanceDate = Survey.getLastDateForSurveyType(Constants.SURVEY_RESET);
         if (maxBalanceDate == null || Utils.dateGreaterOrEqualsThanDate(maxBalanceDate,
                 survey.getEventDate())) {
-            if (survey.getType() == Constants.SURVEY_BALANCE) {
+            if (survey.getType() == Constants.SURVEY_RESET) {
                 balanceSurvey[position] = surveyValue;
             } else if (survey.getType() == Constants.SURVEY_RECEIPT) {
                 summationReceiptsUsed[position] += surveyValue;
-            } else if (survey.getType() == Constants.SURVEY_EXPENSE) {
+            } else if (survey.getType() == Constants.SURVEY_ISSUE) {
                 summationReceiptsUsed[position] -= surveyValue;
             }
             columnClasses.set(position + 1, getCSSForValues(position));

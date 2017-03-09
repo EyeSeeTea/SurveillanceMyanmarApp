@@ -12,8 +12,8 @@ import android.view.ViewGroup;
 
 import org.eyeseetea.malariacare.DashboardActivity;
 import org.eyeseetea.malariacare.R;
-import org.eyeseetea.malariacare.database.model.Program;
-import org.eyeseetea.malariacare.database.model.Survey;
+import org.eyeseetea.malariacare.data.database.model.Program;
+import org.eyeseetea.malariacare.data.database.model.Survey;
 import org.eyeseetea.malariacare.layout.adapters.HistoricReceiptBalanceAdapter;
 
 import java.util.List;
@@ -60,7 +60,7 @@ public class HistoricReceiptBalanceFragment extends Fragment {
         mLayoutManager = new LinearLayoutManager(getActivity());
         historicList.setLayoutManager(mLayoutManager);
 
-        mHistoricReceiptBalanceAdapter = new HistoricReceiptBalanceAdapter(mSurveys);
+        mHistoricReceiptBalanceAdapter = new HistoricReceiptBalanceAdapter(mSurveys,type);
         historicList.setAdapter(mHistoricReceiptBalanceAdapter);
 
         view.findViewById(R.id.historic_receipt_balance_back).setOnClickListener(

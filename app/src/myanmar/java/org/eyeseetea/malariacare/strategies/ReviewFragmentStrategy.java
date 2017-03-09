@@ -6,8 +6,9 @@ import android.widget.TableRow;
 
 import org.eyeseetea.malariacare.DashboardActivity;
 import org.eyeseetea.malariacare.R;
-import org.eyeseetea.malariacare.database.model.Question;
-import org.eyeseetea.malariacare.database.model.Value;
+import org.eyeseetea.malariacare.data.database.model.Question;
+import org.eyeseetea.malariacare.data.database.model.Value;
+import org.eyeseetea.malariacare.data.database.utils.PreferencesState;
 import org.eyeseetea.sdk.presentation.views.CustomTextView;
 
 public class ReviewFragmentStrategy extends AReviewFragmentStrategy {
@@ -15,16 +16,14 @@ public class ReviewFragmentStrategy extends AReviewFragmentStrategy {
     final String TITLE_SEPARATOR = ": ";
 
     public TableRow createViewRow(TableRow rowView, Value value) {
+
+        rowView.setTag(getCorrectQuestion(value.getQuestion()));
+
         //Sets the value text in the row and add the question as tag.
-        CustomTextView valueTextView = (CustomTextView) rowView.findViewById(
-                R.id.review_content_text);
         CustomTextView questionTextView = (CustomTextView) rowView.findViewById(
                 R.id.review_title_text);
-        valueTextView.setText(
-                (value.getOption() != null) ? value.getOption().getInternationalizedCode()
-                        : value.getValue());
+
         if ((value.getQuestion() != null)) {
-            valueTextView.setTag(value.getQuestion());
             questionTextView.setText(
                     value.getQuestion().getInternationalizedCodeDe_Name() + TITLE_SEPARATOR);
             //Adds click listener to hide the fragment and go to the clicked question.
@@ -36,6 +35,10 @@ public class ReviewFragmentStrategy extends AReviewFragmentStrategy {
                 }
             });
 
+            questionTextView.setText(questionTextView.getText().toString() +
+                    ((value.getOption() != null) ? value.getOption().getInternationalizedCode()
+                            : value.getValue()));
+
             if (value.getOption() != null && value.getOption().getBackground_colour() != null) {
                 rowView.setBackgroundColor(
                         Color.parseColor(
@@ -44,5 +47,25 @@ public class ReviewFragmentStrategy extends AReviewFragmentStrategy {
 
         }
         return rowView;
+    }
+
+
+    private Question getCorrectQuestion(Question question) {
+        if (question.getUid().equals(PreferencesState.getInstance().getContext().getString(
+                R.string.dynamicTreatmentQuestionUID)) || question.getUid().equals(
+                PreferencesState.getInstance().getContext().getString(
+                        R.string.referralQuestionUID))
+                || question.getUid().equals(
+                PreferencesState.getInstance().getContext().getString(
+                        R.string.treatmentDiagnosisVisibleQuestion))) {
+            return Question.findByUID(PreferencesState.getInstance().getContext().getString(
+                    R.string.dynamicTreatmentHideQuestionUID));
+        }
+        if (question.getUid().equals(PreferencesState.getInstance().getContext().getString(
+                R.string.outOfStockQuestionUID))) {
+            return Question.findByUID(PreferencesState.getInstance().getContext().getString(
+                    R.string.dynamicStockQuestionUID));
+        }
+        return question;
     }
 }

@@ -2,13 +2,12 @@ package org.eyeseetea.malariacare.layout.adapters.survey.navigation;
 
 import android.util.Log;
 
-import org.eyeseetea.malariacare.database.model.Option;
-import org.eyeseetea.malariacare.database.model.Question;
-import org.eyeseetea.malariacare.database.model.QuestionRelation;
-import org.eyeseetea.malariacare.database.model.Tab;
-import org.eyeseetea.malariacare.database.model.Value;
-import org.eyeseetea.malariacare.database.utils.ReadWriteDB;
-import org.eyeseetea.malariacare.database.utils.Session;
+import org.eyeseetea.malariacare.data.database.model.Option;
+import org.eyeseetea.malariacare.data.database.model.Question;
+import org.eyeseetea.malariacare.data.database.model.QuestionRelation;
+import org.eyeseetea.malariacare.data.database.model.Tab;
+import org.eyeseetea.malariacare.data.database.model.Value;
+import org.eyeseetea.malariacare.data.database.utils.Session;
 import org.eyeseetea.malariacare.utils.Constants;
 
 import java.util.ArrayList;
@@ -311,15 +310,14 @@ public class NavigationController {
         nextNode = getCurrentNode().next(option);
         if (nextNode != null && (
                 actualQuestion.getHeader().getTab().getType() == Constants.TAB_MULTI_QUESTION
+                        || actualQuestion.getHeader().getTab().getType()
+                        == Constants.TAB_DYNAMIC_TREATMENT
                         || nextNode.getQuestion().getOutput() == Constants.HIDDEN)) {
             while (nextNode != null && (nextNode.getQuestion().getHeader().getTab().equals(
                     actualQuestion.getHeader().getTab())
                     || nextNode.getQuestion().getOutput() == Constants.HIDDEN)) {
-                if (nextNode.getSibling() == null) {
-                    nextNode = null;
-                } else {
-                    nextNode = nextNode.next();
-                }
+                Option optionNext = nextNode.getQuestion().getOptionBySession();
+                nextNode = nextNode.next(optionNext);
             }
         }
 
@@ -371,7 +369,7 @@ public class NavigationController {
         }
 
         while (getCurrentNode() != null && getCurrentNode() != warningNode.previous()) {
-            ReadWriteDB.deleteValue(getCurrentQuestion());
+            getCurrentQuestion().deleteValueBySession();
             previous();
         }
     }

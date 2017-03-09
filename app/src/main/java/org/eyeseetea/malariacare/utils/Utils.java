@@ -20,12 +20,15 @@
 package org.eyeseetea.malariacare.utils;
 
 import android.content.Context;
+import android.content.res.Resources;
 
+import org.apache.commons.lang3.StringUtils;
 import org.eyeseetea.malariacare.R;
-import org.eyeseetea.malariacare.database.model.Header;
-import org.eyeseetea.malariacare.database.model.Question;
-import org.eyeseetea.malariacare.database.model.Tab;
-import org.eyeseetea.malariacare.database.utils.PreferencesState;
+import org.eyeseetea.malariacare.data.database.model.Header;
+import org.eyeseetea.malariacare.data.database.model.Question;
+import org.eyeseetea.malariacare.data.database.model.Tab;
+import org.eyeseetea.malariacare.data.database.model.Translation;
+import org.eyeseetea.malariacare.data.database.utils.PreferencesState;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -36,6 +39,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -98,7 +102,14 @@ public class Utils {
                 context.getPackageName());
         //if the id is 0 it not exist.
         if (identifier != 0) {
-            name = context.getString(identifier);
+            try {
+                name = context.getString(identifier);
+            } catch (Resources.NotFoundException notFoundException) {
+                if (StringUtils.isNumeric(name)) {
+                    name = Translation.getLocalizedString(Long.valueOf(name),
+                            context.getResources().getConfiguration().locale.toString());
+                }
+            }
         }
 
         return name;
@@ -231,6 +242,12 @@ public class Utils {
             e.printStackTrace();
         }
         return calendar;
+    }
+
+    public static String parseDateToString(Date date, String dateFormat) {
+        DateFormat df = new SimpleDateFormat(dateFormat);
+        return df.format(date);
+
     }
     public static Calendar parseStringToCalendar(String datestring,String dateFormat) {
         Calendar calendar = Calendar.getInstance();

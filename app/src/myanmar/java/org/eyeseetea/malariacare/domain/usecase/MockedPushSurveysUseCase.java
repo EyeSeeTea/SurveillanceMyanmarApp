@@ -3,7 +3,7 @@ package org.eyeseetea.malariacare.domain.usecase;
 
 import static org.eyeseetea.malariacare.utils.Constants.SURVEY_SENT;
 
-import org.eyeseetea.malariacare.database.model.Survey;
+import org.eyeseetea.malariacare.data.database.model.Survey;
 
 import java.util.List;
 
@@ -15,13 +15,12 @@ public class MockedPushSurveysUseCase {
         for (Survey survey : surveys) {
             survey.setStatus(SURVEY_SENT);
             survey.save();
-            Survey stockSurvey = Survey.getStockSurveyWithCreationDate(survey.getCreationDate());
+            Survey stockSurvey = Survey.getStockSurveyWithEventDate(survey.getEventDate());
             if (stockSurvey != null) {
                 stockSurvey.setStatus(SURVEY_SENT);
                 stockSurvey.save();
             }
         }
-
         callback.onPushFinished();
     }
 

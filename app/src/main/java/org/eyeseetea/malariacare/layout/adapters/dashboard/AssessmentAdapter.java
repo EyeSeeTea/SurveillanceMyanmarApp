@@ -30,8 +30,8 @@ import android.widget.ListView;
 
 import org.eyeseetea.malariacare.DashboardActivity;
 import org.eyeseetea.malariacare.R;
-import org.eyeseetea.malariacare.database.model.Survey;
-import org.eyeseetea.malariacare.database.utils.Session;
+import org.eyeseetea.malariacare.data.database.model.Survey;
+import org.eyeseetea.malariacare.data.database.utils.Session;
 import org.eyeseetea.malariacare.layout.adapters.dashboard.strategies.DashboardAdapterStrategy;
 import org.eyeseetea.malariacare.layout.adapters.dashboard.strategies.IAssessmentAdapterStrategy;
 import org.eyeseetea.malariacare.layout.utils.LayoutUtils;
@@ -186,9 +186,12 @@ public class AssessmentAdapter extends BaseAdapter implements IDashboardAdapter 
         //fixed the position in the list if the adapter have a header.
         int fixedPosition = getFixedPosition(l);
         //Put selected survey in session
-        Session.setMalariaSurvey(surveys.get(position - fixedPosition));
-        // Go to SurveyActivity
-        DashboardActivity.dashboardActivity.openSentSurvey();
+        Survey malariaSurvey = surveys.get(position - fixedPosition);
+        Session.setMalariaSurvey(malariaSurvey);
+        if (mDashboardAdapterStrategy.hasAllComplementarySurveys(malariaSurvey)) {
+            // Go to SurveyActivity
+            DashboardActivity.dashboardActivity.openSentSurvey();
+        }
     }
 
 

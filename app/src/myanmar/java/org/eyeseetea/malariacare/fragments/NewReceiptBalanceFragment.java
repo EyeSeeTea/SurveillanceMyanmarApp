@@ -13,11 +13,11 @@ import android.widget.TextView;
 
 import org.eyeseetea.malariacare.DashboardActivity;
 import org.eyeseetea.malariacare.R;
-import org.eyeseetea.malariacare.database.model.Program;
-import org.eyeseetea.malariacare.database.model.Question;
-import org.eyeseetea.malariacare.database.model.Survey;
-import org.eyeseetea.malariacare.database.model.Value;
-import org.eyeseetea.malariacare.database.utils.Session;
+import org.eyeseetea.malariacare.data.database.model.Program;
+import org.eyeseetea.malariacare.data.database.model.Question;
+import org.eyeseetea.malariacare.data.database.model.Survey;
+import org.eyeseetea.malariacare.data.database.model.Value;
+import org.eyeseetea.malariacare.data.database.utils.Session;
 import org.eyeseetea.malariacare.utils.Constants;
 import org.eyeseetea.malariacare.utils.Utils;
 import org.eyeseetea.malariacare.views.DatePickerFragment;
@@ -25,6 +25,7 @@ import org.eyeseetea.malariacare.views.DatePickerFragment;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.Calendar;
+import java.util.Date;
 
 
 public class NewReceiptBalanceFragment extends Fragment {
@@ -63,7 +64,7 @@ public class NewReceiptBalanceFragment extends Fragment {
         pq = (EditText) view.findViewById(R.id.new_receipt_balance_pq);
         cq = (EditText) view.findViewById(R.id.new_receipt_balance_cq);
 
-
+        putTodayDate();
         view.findViewById(R.id.new_receipt_balance_back).setOnClickListener(
                 new View.OnClickListener() {
                     @Override
@@ -94,6 +95,11 @@ public class NewReceiptBalanceFragment extends Fragment {
                 datePickerFragment.show(getFragmentManager(), TAG);
             }
         });
+    }
+
+    private void putTodayDate() {
+        Date todayDate = Calendar.getInstance().getTime();
+        date.setText(Utils.parseDateToString(todayDate, "yyyy/MM/dd"));
     }
 
     private void submitPressed() {

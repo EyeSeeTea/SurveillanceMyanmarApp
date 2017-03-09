@@ -5,9 +5,9 @@ import android.content.Intent;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
-import org.eyeseetea.malariacare.database.model.Program;
-import org.eyeseetea.malariacare.database.model.Survey;
-import org.eyeseetea.malariacare.database.utils.Session;
+import org.eyeseetea.malariacare.data.database.model.Program;
+import org.eyeseetea.malariacare.data.database.model.Survey;
+import org.eyeseetea.malariacare.data.database.utils.Session;
 import org.eyeseetea.malariacare.presentation.factory.stock.StockBuilder;
 import org.eyeseetea.malariacare.utils.Constants;
 import org.eyeseetea.malariacare.utils.Utils;
@@ -65,7 +65,7 @@ public class StockService extends IntentService {
     private void prepareStockData() {
         Log.i(TAG, "Preparing stock data...");
 
-        Date lastEvenSurveyDate = Survey.getLastDateForSurveyType(Constants.SURVEY_BALANCE);
+        Date lastEvenSurveyDate = Survey.getLastDateForSurveyType(Constants.SURVEY_RESET);
         Date queryDate = lastEvenSurveyDate;
         if (lastEvenSurveyDate == null || Utils.dateGreaterOrEqualsThanDate(Utils.getTodayDate(),
                 lastEvenSurveyDate)) {

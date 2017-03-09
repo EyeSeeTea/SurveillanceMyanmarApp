@@ -11,13 +11,14 @@ import android.widget.BaseAdapter;
 import android.widget.ListView;
 
 import org.eyeseetea.malariacare.R;
-import org.eyeseetea.malariacare.database.model.QuestionRelation;
-import org.eyeseetea.malariacare.database.model.Survey;
-import org.eyeseetea.malariacare.database.model.Value;
-import org.eyeseetea.malariacare.database.utils.Session;
+import org.eyeseetea.malariacare.data.database.model.QuestionRelation;
+import org.eyeseetea.malariacare.data.database.model.Survey;
+import org.eyeseetea.malariacare.data.database.model.Value;
+import org.eyeseetea.malariacare.data.database.utils.Session;
 import org.eyeseetea.malariacare.layout.adapters.dashboard.IDashboardAdapter;
 import org.eyeseetea.malariacare.layout.adapters.dashboard.ReviewScreenAdapter;
 import org.eyeseetea.malariacare.strategies.DashboardHeaderStrategy;
+import org.eyeseetea.malariacare.utils.Constants;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -77,17 +78,41 @@ public class ReviewFragment extends Fragment {
         List<Value> allValues = survey.getValuesFromDB();
         for (Value value : allValues) {
             boolean isReviewValue = true;
+            if (value.getQuestion() == null) {
+                continue;
+            }
             for (QuestionRelation questionRelation : value.getQuestion().getQuestionRelations()) {
                 if (questionRelation.isACounter() || questionRelation.isAReminder()
                         || questionRelation.isAWarning() || questionRelation.isAMatch()) {
                     isReviewValue = false;
                 }
             }
+            int output = value.getQuestion().getOutput();
+            if (output == Constants.HIDDEN
+                    || output == Constants.DYNAMIC_STOCK_IMAGE_RADIO_BUTTON) {
+                isReviewValue = false;
+            }
             if (isReviewValue) {
-                reviewValues.add(value);
+                if (!isStockValue(value)) {
+                    reviewValues.add(value);
+                }
             }
         }
         return reviewValues;
+    }
+
+    private boolean isStockValue(Value value) {
+        if (value.getQuestion() == null) {
+            return false;
+        }
+        for (Value stockValue : Session.getStockSurvey().getValuesFromDB()) {
+            if (stockValue.getQuestion() != null) {
+                if (stockValue.getQuestion().getUid().equals(value.getQuestion().getUid())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**

@@ -20,9 +20,9 @@
 package org.eyeseetea.malariacare.layout.adapters.survey;
 
 import static org.eyeseetea.malariacare.R.id.question;
-import static org.eyeseetea.malariacare.database.model.Option.DOESNT_MATCH_POSITION;
-import static org.eyeseetea.malariacare.database.model.Option.MATCH_POSITION;
-import static org.eyeseetea.malariacare.database.utils.Session.getMalariaSurvey;
+import static org.eyeseetea.malariacare.data.database.model.Option.DOESNT_MATCH_POSITION;
+import static org.eyeseetea.malariacare.data.database.model.Option.MATCH_POSITION;
+import static org.eyeseetea.malariacare.data.database.utils.Session.getMalariaSurvey;
 
 import android.app.AlertDialog;
 import android.content.Context;
@@ -48,16 +48,16 @@ import android.widget.TableRow;
 import org.eyeseetea.malariacare.BuildConfig;
 import org.eyeseetea.malariacare.DashboardActivity;
 import org.eyeseetea.malariacare.R;
-import org.eyeseetea.malariacare.database.model.Option;
-import org.eyeseetea.malariacare.database.model.Question;
-import org.eyeseetea.malariacare.database.model.QuestionOption;
-import org.eyeseetea.malariacare.database.model.QuestionRelation;
-import org.eyeseetea.malariacare.database.model.Survey;
-import org.eyeseetea.malariacare.database.model.Tab;
-import org.eyeseetea.malariacare.database.model.Value;
-import org.eyeseetea.malariacare.database.utils.PreferencesState;
-import org.eyeseetea.malariacare.database.utils.ReadWriteDB;
-import org.eyeseetea.malariacare.database.utils.Session;
+import org.eyeseetea.malariacare.data.database.model.Option;
+import org.eyeseetea.malariacare.data.database.model.OrgUnit;
+import org.eyeseetea.malariacare.data.database.model.Question;
+import org.eyeseetea.malariacare.data.database.model.QuestionOption;
+import org.eyeseetea.malariacare.data.database.model.QuestionRelation;
+import org.eyeseetea.malariacare.data.database.model.Survey;
+import org.eyeseetea.malariacare.data.database.model.Tab;
+import org.eyeseetea.malariacare.data.database.model.Value;
+import org.eyeseetea.malariacare.data.database.utils.PreferencesState;
+import org.eyeseetea.malariacare.data.database.utils.Session;
 import org.eyeseetea.malariacare.domain.entity.Treatment;
 import org.eyeseetea.malariacare.domain.entity.Validation;
 import org.eyeseetea.malariacare.layout.adapters.survey.navigation.NavigationBuilder;
@@ -82,11 +82,9 @@ import org.eyeseetea.malariacare.views.question.IMultiQuestionView;
 import org.eyeseetea.malariacare.views.question.INavigationQuestionView;
 import org.eyeseetea.malariacare.views.question.IQuestionView;
 import org.eyeseetea.malariacare.views.question.multiquestion.NumberRadioButtonMultiquestionView;
-import org.eyeseetea.malariacare.views.question.singlequestion
-        .DynamicStockImageRadioButtonSingleQuestionView;
+import org.eyeseetea.malariacare.views.question.singlequestion.DynamicStockImageRadioButtonSingleQuestionView;
 import org.eyeseetea.malariacare.views.question.singlequestion.ImageRadioButtonSingleQuestionView;
-import org.eyeseetea.malariacare.views.question.singlequestion.strategies
-        .ConfirmCounterSingleCustomViewStrategy;
+import org.eyeseetea.malariacare.views.question.singlequestion.strategies.ConfirmCounterSingleCustomViewStrategy;
 import org.eyeseetea.sdk.presentation.views.CustomEditText;
 import org.eyeseetea.sdk.presentation.views.CustomTextView;
 
@@ -126,7 +124,7 @@ public class DynamicTabAdapter extends BaseAdapter implements ITabAdapter {
     /**
      * Added to save the dose by a quetion id when questions are dynamic treatment questions
      */
-    HashMap<Long, Integer> doseByQuestion;
+    HashMap<Long, Float> doseByQuestion;
     /**
      * Flag that indicates if the current survey in session is already sent or not (it affects
      * readonly settings)
@@ -140,6 +138,7 @@ public class DynamicTabAdapter extends BaseAdapter implements ITabAdapter {
      */
     private SwipeTouchListener swipeTouchListener;
     private boolean mReviewMode = false;
+    private boolean isBackward = true;
 
     public DynamicTabAdapter(Tab tab, Context context, boolean reviewMode) {
         mReviewMode = reviewMode;
@@ -150,30 +149,30 @@ public class DynamicTabAdapter extends BaseAdapter implements ITabAdapter {
         this.navigationController = initNavigationController(tab);
         this.readOnly = getMalariaSurvey() != null && !getMalariaSurvey().isInProgress();
 
-        //On create dynamictabadapter, if is not readonly and has value not null it should come
-        // from reviewFragment
-        if (!readOnly) {
             Question question = navigationController.getCurrentQuestion();
             if (question.getValueBySession() != null) {
                 if (DashboardActivity.moveToQuestion != null) {
                     goToQuestion(DashboardActivity.moveToQuestion);
                     DashboardActivity.moveToQuestion = null;
                 } else {
-                    goToLastQuestion();
+                    goToQuestion(question);
                 }
             }
+
+
+        int totalPages = 0;
+        if (getMalariaSurvey() != null) {
+            totalPages = getMalariaSurvey().getMaxTotalPages();
+        }
+        if (totalPages == 0) {
+            totalPages = navigationController.getCurrentQuestion().getTotalQuestions();
         }
 
-        int totalPages = navigationController.getCurrentQuestion().getTotalQuestions();
-        if (readOnly) {
-            if (Session.getMalariaSurvey() != null) {
-                totalPages = Session.getMalariaSurvey().getMaxTotalPages();
-            }
-        }
         navigationController.setTotalPages(totalPages);
         isClicked = false;
 
         mDynamicTabAdapterStrategy = new DynamicTabAdapterStrategy(this);
+        mDynamicTabAdapterStrategy.initSurveys(readOnly);
     }
 
     /**
@@ -255,17 +254,33 @@ public class DynamicTabAdapter extends BaseAdapter implements ITabAdapter {
 
         Question question = (Question) view.getTag();
 
+        if (!selectedOption.getName().isEmpty()
+                && question.getOutput() == Constants.DROPDOWN_OU_LIST) {
+            OrgUnit orgUnit = OrgUnit.findByUID(selectedOption.getName());
+
+            assignOrgUnitToSurvey(Session.getMalariaSurvey(), orgUnit);
+            assignOrgUnitToSurvey(Session.getStockSurvey(), orgUnit);
+        }
+
+
         Question counterQuestion = question.findCounterByOption(selectedOption);
         if (counterQuestion == null) {
             saveOptionValue(view, selectedOption, question, moveToNextQuestion);
-        } else {
+        } else if (!(view instanceof ImageRadioButtonSingleQuestionView)) {
             showConfirmCounter(view, selectedOption, question, counterQuestion);
+        }
+    }
+
+    private void assignOrgUnitToSurvey(Survey survey, OrgUnit orgUnit) {
+        if (survey != null) {
+            survey.setOrgUnit(orgUnit);
+            survey.save();
         }
     }
 
     public void saveTextValue(View view, String newValue, boolean moveToNextQuestion) {
         Question question = (Question) view.getTag();
-        ReadWriteDB.saveValuesText(question, newValue);
+        question.saveValuesText(newValue);
 
         if (moveToNextQuestion) {
             navigationController.isMovingToForward = true;
@@ -277,13 +292,15 @@ public class DynamicTabAdapter extends BaseAdapter implements ITabAdapter {
 
     public void saveOptionValue(View view, Option selectedOption, Question question,
             boolean moveToNextQuestion) {
+        Option answeredOption = (question != null) ? question.getAnsweredOption() : null;
         Value value = question.getValueBySession();
 
-        if (value != null && !readOnly) {
+        if (goingBackwardAndModifiedValues(value, answeredOption, selectedOption)) {
             navigationController.setTotalPages(question.getTotalQuestions());
+            isBackward = false;
         }
 
-        ReadWriteDB.saveValuesDDL(question, selectedOption, value);
+        question.saveValuesDDL(selectedOption, value);
 
         if (question.getOutput().equals(Constants.IMAGE_3_NO_DATAELEMENT) ||
                 question.getOutput().equals(Constants.IMAGE_RADIO_GROUP_NO_DATAELEMENT)) {
@@ -296,6 +313,12 @@ public class DynamicTabAdapter extends BaseAdapter implements ITabAdapter {
         } else {
             showOrHideChildren(question);
         }
+    }
+
+    private boolean goingBackwardAndModifiedValues(Value value, Option answeredOption,
+            Option selectedOption) {
+        return isBackward && value != null && !readOnly && (answeredOption == null
+                || !answeredOption.getId_option().equals(selectedOption.getId_option()));
     }
 
     private void showConfirmCounter(final View view, final Option selectedOption,
@@ -338,7 +361,7 @@ public class DynamicTabAdapter extends BaseAdapter implements ITabAdapter {
         int optionPosition = (option.getCode().equals(matchOption.getCode())) ? MATCH_POSITION
                 : DOESNT_MATCH_POSITION;
 
-        ReadWriteDB.saveValuesDDL(matchQuestion,
+        matchQuestion.saveValuesDDL(
                 matchQuestion.getAnswer().getOptions().get(optionPosition),
                 matchQuestion.getValueBySession());
     }
@@ -396,13 +419,12 @@ public class DynamicTabAdapter extends BaseAdapter implements ITabAdapter {
         rowView.requestLayout();
         Question questionItem = (Question) this.getItem(position);
 
-
         // We get values from DB and put them in Session
-        if (Session.getMalariaSurvey() != null) {
+        if (getMalariaSurvey() != null) {
             if (Session.getStockSurvey() != null) {
                 Session.getStockSurvey().getValuesFromDB();
             }
-            Session.getMalariaSurvey().getValuesFromDB();
+            getMalariaSurvey().getValuesFromDB();
         } else {
             //The survey in session is null when the user closes the surveyFragment, but the
             // getView is called.
@@ -446,11 +468,15 @@ public class DynamicTabAdapter extends BaseAdapter implements ITabAdapter {
             (rowView.findViewById(R.id.scrolled_table)).setVisibility(View.VISIBLE);
             (rowView.findViewById(R.id.no_scrolled_table)).setVisibility(View.GONE);
             if (tabType == Constants.TAB_DYNAMIC_TREATMENT) {
-                Treatment treatment = new Treatment(getMalariaSurvey(), Session.getStockSurvey());
+                Treatment treatment = new Treatment(Session.getMalariaSurvey(),
+                        Session.getStockSurvey());
                 if (treatment.hasTreatment()) {
                     screenQuestions = treatment.getQuestions();
                     doseByQuestion = treatment.getDoseByQuestion();
+                } else {
+                    screenQuestions = treatment.getNoTreatmentQuestions();
                 }
+
             } else if (Tab.isMultiQuestionTab(tabType)) {
                 screenQuestions = questionItem.getQuestionsByTab(questionItem.getHeader().getTab());
             } else {
@@ -481,6 +507,16 @@ public class DynamicTabAdapter extends BaseAdapter implements ITabAdapter {
 
         rowView.requestLayout();
         reloadingQuestionFromInvalidOption = false;
+
+        //FIXME: 09/03/2017  Refactor: This is used to prevent multiple open and close surveys crash
+        Session.setIsLoadingSurvey(false);
+        if(Session.shouldPressBackOnLoadSurvey()) {
+            DashboardActivity.dashboardActivity.runOnUiThread(new Runnable() {
+                public void run() {
+                    DashboardActivity.dashboardActivity.onBackPressed();
+                }
+            });
+        }
         return rowView;
     }
 
@@ -488,18 +524,16 @@ public class DynamicTabAdapter extends BaseAdapter implements ITabAdapter {
         TableRow tableRow;
         IQuestionViewFactory questionViewFactory;
 
-        if (Tab.isMultiQuestionTab(tabType) || Tab.isDynamicTreatmentTab(tabType)) {
-            questionViewFactory = new MultiQuestionViewFactory();
-        } else {
-            questionViewFactory = new SingleQuestionViewFactory();
-        }
+        questionViewFactory = (Tab.isMultiQuestionTab(tabType) || Tab.isDynamicTreatmentTab(
+                tabType)) ? new MultiQuestionViewFactory() : new SingleQuestionViewFactory();
 
         // Se get the value from Session
         int visibility = View.GONE;
 
-        Survey survey = (screenQuestion.isStockQuestion() || screenQuestion.isDynamicStockQuestion())
-                ? Session.getStockSurvey()
-                : Session.getMalariaSurvey();
+        Survey survey =
+                (screenQuestion.isStockQuestion() || screenQuestion.isDynamicStockQuestion())
+                        ? Session.getStockSurvey()
+                        : getMalariaSurvey();
 
         if (!screenQuestion.isHiddenBySurveyAndHeader(survey)
                 || !Tab.isMultiQuestionTab(tabType)) {
@@ -534,12 +568,16 @@ public class DynamicTabAdapter extends BaseAdapter implements ITabAdapter {
                         screenQuestion.getInternationalizedPath());
             }
             if (screenQuestion.isDynamicStockQuestion()) {
-                Treatment treatment = new Treatment(Session.getMalariaSurvey(),
+                Treatment treatment = new Treatment(getMalariaSurvey(),
                         Session.getStockSurvey());
-                Question actAnsweredNo = treatment.getACTQuestionAnsweredNo();
-                screenQuestion.setAnswer(treatment.getACTOptions(actAnsweredNo));
-                ((DynamicStockImageRadioButtonSingleQuestionView) questionView).setOptionDose(
-                        treatment.getOptionDose(actAnsweredNo));
+                if (treatment.hasTreatment()) {
+                    org.eyeseetea.malariacare.data.database.model.Treatment dbTreatment =
+                            treatment.getTreatment();
+                    Question actAnsweredNo = treatment.getACTQuestionAnsweredNo();
+                    screenQuestion.setAnswer(treatment.getACTOptions(dbTreatment));
+                    ((DynamicStockImageRadioButtonSingleQuestionView) questionView).setOptionDose(
+                            treatment.getOptionDose(dbTreatment));
+                }
                 ((DynamicStockImageRadioButtonSingleQuestionView) questionView).setQuestion(
                         screenQuestion);
                 ((DynamicStockImageRadioButtonSingleQuestionView) questionView).setOptions(
@@ -726,15 +764,17 @@ public class DynamicTabAdapter extends BaseAdapter implements ITabAdapter {
 
                             Question counterQuestion = question.findCounterByOption(
                                     selectedOption);
-                            if (counterQuestion == null || (mReviewMode
+                            if ((mReviewMode
                                     && isCounterValueEqualToMax(question, selectedOption))) {
                                 saveOptionValue(selectedOptionView,
                                         selectedOptionView.getOption(),
                                         question, true);
-                            } else {
+                            } else if (counterQuestion != null) {
                                 showConfirmCounter(selectedOptionView,
                                         selectedOptionView.getOption(),
                                         question, counterQuestion);
+                            } else {
+                                finishOrNext();
                             }
                         } else {
                             isClicked = false;
@@ -766,7 +806,7 @@ public class DynamicTabAdapter extends BaseAdapter implements ITabAdapter {
     private boolean isCounterValueEqualToMax(Question question, Option selectedOption) {
 
         Survey survey = (question.isStockQuestion()) ? Session.getStockSurvey()
-                : Session.getMalariaSurvey();
+                : getMalariaSurvey();
 
         Float counterValue = survey.getCounterValue(question, selectedOption);
 
@@ -852,7 +892,7 @@ public class DynamicTabAdapter extends BaseAdapter implements ITabAdapter {
     private boolean toggleChild(TableRow row, Question rowQuestion, Question childQuestion) {
         if (childQuestion.getId_question().equals(rowQuestion.getId_question())) {
             Survey survey = (rowQuestion.isStockQuestion()) ? Session.getStockSurvey()
-                    : Session.getMalariaSurvey();
+                    : getMalariaSurvey();
 
             if (rowQuestion.isHiddenBySurveyAndHeader(survey)) {
                 row.setVisibility(View.GONE);
@@ -881,7 +921,7 @@ public class DynamicTabAdapter extends BaseAdapter implements ITabAdapter {
             case Constants.SHORT_TEXT:
             case Constants.DROPDOWN_LIST:
             case Constants.DROPDOWN_OU_LIST:
-                ReadWriteDB.deleteValue(rowQuestion);
+                rowQuestion.deleteValueBySession();
                 break;
             case Constants.SWITCH_BUTTON:
                 //the 0 option is the left option and is false in the switch, the 1 option is the
@@ -940,6 +980,10 @@ public class DynamicTabAdapter extends BaseAdapter implements ITabAdapter {
      * value.
      */
     public void finishOrNext() {
+        try{
+            System.out.println(Session.getMalariaSurvey().getValuesFromDB().toString());
+            System.out.println(Session.getStockSurvey().getValuesFromDB().toString());
+        }catch (Exception e){}
         if (Validation.hasErrors()) {
             Validation.showErrors();
             isClicked = false;
@@ -988,9 +1032,7 @@ public class DynamicTabAdapter extends BaseAdapter implements ITabAdapter {
                 .setPositiveButton(R.string.survey_send, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int arg1) {
                         hideKeyboard(PreferencesState.getInstance().getContext());
-                        Session.getMalariaSurvey().updateSurveyStatus();
-                        Session.getStockSurvey().complete();
-                        DashboardActivity.dashboardActivity.closeSurveyFragment();
+                        DashboardActivity.dashboardActivity.completeSurvey();
                         isClicked = false;
                     }
                 });
@@ -1031,12 +1073,10 @@ public class DynamicTabAdapter extends BaseAdapter implements ITabAdapter {
         hideKeyboard(PreferencesState.getInstance().getContext());
 
         question = navigationController.getCurrentQuestion();
-        value = question.getValueBySession();
 
-        //set new page number if the value is null
-        if (value == null && !readOnly) {
-            navigationController.setTotalPages(
-                    navigationController.getCurrentQuestion().getTotalQuestions());
+        if (value != null && !readOnly
+                && navigationController.getCurrentTotalPages() < question.getTotalQuestions()) {
+            navigationController.setTotalPages(question.getTotalQuestions());
         }
         navigationController.isMovingToForward = false;
         isClicked = false;
@@ -1046,10 +1086,16 @@ public class DynamicTabAdapter extends BaseAdapter implements ITabAdapter {
      * Changes the current question moving backward
      */
     private void previous() {
+        try{
+            System.out.println(Session.getMalariaSurvey().getValuesFromDB().toString());
+            System.out.println(Session.getStockSurvey().getValuesFromDB().toString());
+        }catch (Exception e){}
         if (!navigationController.hasPrevious()) {
             return;
         }
         navigationController.previous();
+        isBackward = navigationController.getCurrentTotalPages()
+                > navigationController.getCurrentQuestion().getTotalQuestions();
         notifyDataSetChanged();
         isClicked = false;
     }
@@ -1130,7 +1176,7 @@ public class DynamicTabAdapter extends BaseAdapter implements ITabAdapter {
         if (selectedOption == null) {
             return;
         }
-        ReadWriteDB.saveValuesDDL(question, selectedOption, question.getValueBySession());
+        question.saveValuesDDL(selectedOption, question.getValueBySession());
         showOrHideChildren(question);
     }
 }

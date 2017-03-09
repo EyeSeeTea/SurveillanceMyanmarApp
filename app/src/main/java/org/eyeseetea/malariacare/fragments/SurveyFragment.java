@@ -39,11 +39,12 @@ import android.widget.RelativeLayout;
 
 import org.eyeseetea.malariacare.DashboardActivity;
 import org.eyeseetea.malariacare.R;
-import org.eyeseetea.malariacare.database.model.CompositeScore;
-import org.eyeseetea.malariacare.database.model.Option;
-import org.eyeseetea.malariacare.database.model.Question;
-import org.eyeseetea.malariacare.database.model.Tab;
-import org.eyeseetea.malariacare.database.utils.Session;
+import org.eyeseetea.malariacare.data.database.model.CompositeScore;
+import org.eyeseetea.malariacare.data.database.model.Option;
+import org.eyeseetea.malariacare.data.database.model.Question;
+import org.eyeseetea.malariacare.data.database.model.Survey;
+import org.eyeseetea.malariacare.data.database.model.Tab;
+import org.eyeseetea.malariacare.data.database.utils.Session;
 import org.eyeseetea.malariacare.layout.adapters.survey.DynamicTabAdapter;
 import org.eyeseetea.malariacare.layout.adapters.survey.ITabAdapter;
 import org.eyeseetea.malariacare.layout.score.ScoreRegister;
@@ -131,10 +132,23 @@ public class SurveyFragment extends Fragment implements IDashboardFragment {
     @Override
     public void onPause() {
         Log.d(TAG, "onPause");
-        if (!DashboardActivity.dashboardActivity.isLoadingReview()) {
+        if (!DashboardActivity.dashboardActivity.isLoadingReview() && !areActiveSurveysInQuarantine()) {
             beforeExit();
         }
         super.onPause();
+    }
+
+    private boolean areActiveSurveysInQuarantine() {
+        Survey survey = Session.getMalariaSurvey();
+        if(survey !=null && survey.isQuarantine()) {
+            return true;
+        }
+        survey = Session.getStockSurvey();
+        if(survey !=null && survey.isQuarantine()){
+            return true;
+        }
+
+        return false;
     }
 
     private void beforeExit() {
@@ -322,6 +336,8 @@ public class SurveyFragment extends Fragment implements IDashboardFragment {
         @Override
         public void onReceive(Context context, Intent intent) {
             Log.d(TAG, "onReceive");
+            //FIXME: 09/03/2017  Refactor: This is used to prevent multiple open and close surveys crash
+            Session.setIsLoadingSurvey(true);
             List<CompositeScore> compositeScores;
             List<Tab> tabs;
             Session.valuesLock.readLock().lock();

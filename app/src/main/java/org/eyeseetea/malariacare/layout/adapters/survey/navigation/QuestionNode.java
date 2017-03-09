@@ -1,7 +1,7 @@
 package org.eyeseetea.malariacare.layout.adapters.survey.navigation;
 
-import org.eyeseetea.malariacare.database.model.Option;
-import org.eyeseetea.malariacare.database.model.Question;
+import org.eyeseetea.malariacare.data.database.model.Option;
+import org.eyeseetea.malariacare.data.database.model.Question;
 import org.eyeseetea.malariacare.layout.adapters.survey.navigation.status.ReminderStatusChecker;
 import org.eyeseetea.malariacare.layout.adapters.survey.navigation.status.StatusChecker;
 import org.eyeseetea.malariacare.layout.adapters.survey.navigation.status.WarningStatusChecker;
@@ -234,7 +234,7 @@ public class QuestionNode {
         }
 
         //Parent -> Try parent's sibling
-        return this.parentNode.nextBySibling();
+        return this.parentNode.nextAnyWay(null);
     }
 
     /**

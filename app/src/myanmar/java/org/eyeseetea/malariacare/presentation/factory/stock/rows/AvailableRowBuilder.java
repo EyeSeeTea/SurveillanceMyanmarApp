@@ -3,7 +3,7 @@ package org.eyeseetea.malariacare.presentation.factory.stock.rows;
 import android.content.Context;
 
 import org.eyeseetea.malariacare.R;
-import org.eyeseetea.malariacare.database.model.Survey;
+import org.eyeseetea.malariacare.data.database.model.Survey;
 import org.eyeseetea.malariacare.presentation.factory.stock.utils.SurveyStock;
 import org.eyeseetea.malariacare.utils.Constants;
 import org.eyeseetea.malariacare.utils.Utils;
@@ -20,16 +20,16 @@ public class AvailableRowBuilder extends CounterRowBuilder {
     }
 
     @Override
-    protected float incrementCount(SurveyStock surveyStock, float newValue) {
+    protected int incrementCount(SurveyStock surveyStock, int newValue) {
         Survey survey = surveyStock.getSurvey();
-        Date maxBalanceDate = Survey.getLastDateForSurveyType(Constants.SURVEY_BALANCE);
+        Date maxBalanceDate = Survey.getLastDateForSurveyType(Constants.SURVEY_RESET);
         if (maxBalanceDate == null || Utils.dateGreaterOrEqualsThanDate(maxBalanceDate,
                 survey.getEventDate())) {
-            if (survey.getType().equals(Constants.SURVEY_BALANCE)
+            if (survey.getType().equals(Constants.SURVEY_RESET)
                     || survey.getType().equals(
                     Constants.SURVEY_RECEIPT)) {
                 return newValue;
-            } else if (survey.getType().equals(Constants.SURVEY_EXPENSE)) {
+            } else if (survey.getType().equals(Constants.SURVEY_ISSUE)) {
                 return (-newValue);
             }
         }

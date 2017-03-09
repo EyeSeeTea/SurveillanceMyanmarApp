@@ -10,9 +10,8 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import org.eyeseetea.malariacare.R;
-import org.eyeseetea.malariacare.database.model.Option;
-import org.eyeseetea.malariacare.database.model.Question;
-import org.eyeseetea.malariacare.database.utils.ReadWriteDB;
+import org.eyeseetea.malariacare.data.database.model.Option;
+import org.eyeseetea.malariacare.data.database.model.Question;
 import org.eyeseetea.malariacare.fragments.ReviewFragment;
 import org.eyeseetea.malariacare.layout.adapters.survey.DynamicTabAdapter;
 import org.eyeseetea.malariacare.layout.utils.BaseLayoutUtils;
@@ -150,7 +149,7 @@ public class ConfirmCounterSingleCustomViewStrategy implements
             return "";
         }
 
-        String counterValue = ReadWriteDB.readValueQuestion(optionCounter);
+        String counterValue = optionCounter.getQuestionValueBySession();
         if (counterValue == null || counterValue.isEmpty()) {
             return "1";
         }

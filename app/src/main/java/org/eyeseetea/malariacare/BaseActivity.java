@@ -41,12 +41,12 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.eyeseetea.malariacare.database.iomodules.dhis.exporter.PushController;
-import org.eyeseetea.malariacare.database.model.Program;
-import org.eyeseetea.malariacare.database.model.Survey;
-import org.eyeseetea.malariacare.database.utils.ExportData;
-import org.eyeseetea.malariacare.database.utils.PreferencesState;
-import org.eyeseetea.malariacare.database.utils.Session;
+import org.eyeseetea.malariacare.data.database.model.Program;
+import org.eyeseetea.malariacare.data.database.model.Survey;
+import org.eyeseetea.malariacare.data.database.utils.ExportData;
+import org.eyeseetea.malariacare.data.database.utils.PreferencesState;
+import org.eyeseetea.malariacare.data.database.utils.Session;
+import org.eyeseetea.malariacare.data.sync.exporter.PushController;
 import org.eyeseetea.malariacare.layout.utils.LayoutUtils;
 import org.eyeseetea.malariacare.phonemetadata.PhoneMetaData;
 import org.eyeseetea.malariacare.receivers.AlarmPushReceiver;
@@ -54,6 +54,7 @@ import org.eyeseetea.malariacare.strategies.BaseActivityStrategy;
 import org.eyeseetea.malariacare.utils.Constants;
 import org.eyeseetea.malariacare.utils.Permissions;
 import org.eyeseetea.malariacare.utils.Utils;
+import org.eyeseetea.malariacare.views.FontUtils;
 
 import java.io.InputStream;
 import java.util.List;
@@ -64,19 +65,17 @@ public abstract class BaseActivity extends ActionBarActivity {
     /**
      * Extra param to annotate the activity to return after settings
      */
-    public static final String SETTINGS_CALLER_ACTIVITY = "SETTINGS_CALLER_ACTIVITY";
-    /**
-     * Extra param to annotate the activity to return after settings
-     */
     private static final int DUMP_REQUEST_CODE = 0;
     protected static String TAG = ".BaseActivity";
     private AlarmPushReceiver alarmPush;
 
     private BaseActivityStrategy mBaseActivityStrategy = new BaseActivityStrategy(this);
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "onCreate");
+
         PreferencesState.getInstance().loadsLanguageInActivity();
         requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
         requestWindowFeature(Window.FEATURE_ACTIVITY_TRANSITIONS);
@@ -91,7 +90,7 @@ public abstract class BaseActivity extends ActionBarActivity {
         }
 
         initView(savedInstanceState);
-        if (PushController.getInstance().isPushInProgress()) {
+        if (PreferencesState.getInstance().isPushInProgress()) {
             List<Survey> surveys = Survey.getAllSendingSurveys();
             Log.d(TAG, "The app was closed in the middle of a push. Surveys sending: "
                     + surveys.size());
@@ -99,37 +98,14 @@ public abstract class BaseActivity extends ActionBarActivity {
                 survey.setStatus(Constants.SURVEY_QUARANTINE);
                 survey.save();
             }
-            PushController.getInstance().setPushInProgress(false);
+            PreferencesState.getInstance().setPushInProgress(false);
         }
         alarmPush = new AlarmPushReceiver();
         alarmPush.setPushAlarm(this);
 
-
-        applyFontStyleByPreference();
+        FontUtils.applyFontStyleByPreference(getResources(), getTheme());
 
         mBaseActivityStrategy.onCreate();
-    }
-
-    public void applyFontStyleByPreference() {
-        String scale = PreferencesState.getInstance().getScale();
-
-        if (scale.equals(getResources().getString(R.string.font_size_level0))) {
-            applyStyle(R.style.FontStyle_XSmall, true);
-        } else if (scale.equals(getResources().getString(R.string.font_size_level1))) {
-            applyStyle(R.style.FontStyle_Small, true);
-        } else if (scale.equals(getResources().getString(R.string.font_size_level2))) {
-            applyStyle(R.style.FontStyle_Medium, true);
-        } else if (scale.equals(getResources().getString(R.string.font_size_level3))) {
-            applyStyle(R.style.FontStyle_Large, true);
-        } else if (scale.equals(getResources().getString(R.string.font_size_level4))) {
-            applyStyle(R.style.FontStyle_XLarge, true);
-        } else {
-            applyStyle(R.style.FontStyle_Default, true);
-        }
-    }
-
-    private void applyStyle(int resId, boolean force) {
-        getTheme().applyStyle(resId, force);
     }
 
     /**
@@ -223,13 +199,13 @@ public abstract class BaseActivity extends ActionBarActivity {
         switch (id) {
             case R.id.action_settings:
                 debugMessage("User asked for settings");
-                if (PushController.getInstance().isPushInProgress()) {
+                if (PreferencesState.getInstance().isPushInProgress()) {
                     Log.d(TAG, "Click in settings true "
-                            + PushController.getInstance().isPushInProgress());
+                            + PreferencesState.getInstance().isPushInProgress());
                     Toast.makeText(this, R.string.toast_push_is_pushing, Toast.LENGTH_SHORT).show();
                 } else {
                     Log.d(TAG, "Click in settings false "
-                            + PushController.getInstance().isPushInProgress());
+                            + PreferencesState.getInstance().isPushInProgress());
                     goSettings();
                 }
                 break;
@@ -321,7 +297,8 @@ public abstract class BaseActivity extends ActionBarActivity {
 
     protected void goSettings() {
         Intent intentSettings = new Intent(this, SettingsActivity.class);
-        intentSettings.putExtra(SETTINGS_CALLER_ACTIVITY, this.getClass());
+        intentSettings.putExtra(SettingsActivity.SETTINGS_CALLER_ACTIVITY, this.getClass());
+        intentSettings.putExtra(SettingsActivity.IS_LOGIN_DONE, false);
         startActivity(new Intent(this, SettingsActivity.class));
     }
 

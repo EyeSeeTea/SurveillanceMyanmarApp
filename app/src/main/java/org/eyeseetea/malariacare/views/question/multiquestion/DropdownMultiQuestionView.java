@@ -7,9 +7,9 @@ import android.widget.ImageView;
 import android.widget.Spinner;
 
 import org.eyeseetea.malariacare.R;
-import org.eyeseetea.malariacare.database.model.Option;
-import org.eyeseetea.malariacare.database.model.Question;
-import org.eyeseetea.malariacare.database.model.Value;
+import org.eyeseetea.malariacare.data.database.model.Option;
+import org.eyeseetea.malariacare.data.database.model.Question;
+import org.eyeseetea.malariacare.data.database.model.Value;
 import org.eyeseetea.malariacare.layout.adapters.general.OptionArrayAdapter;
 import org.eyeseetea.malariacare.layout.utils.LayoutUtils;
 import org.eyeseetea.malariacare.utils.Constants;
@@ -28,6 +28,7 @@ public class DropdownMultiQuestionView extends AOptionQuestionView implements IQ
     Spinner spinnerOptions;
     ImageView imageView;
     Question question;
+    private boolean optionSetFromSavedValue = false;
 
     public DropdownMultiQuestionView(Context context) {
         super(context);
@@ -77,6 +78,7 @@ public class DropdownMultiQuestionView extends AOptionQuestionView implements IQ
         if (value == null || value.getValue() == null) {
             return;
         }
+        optionSetFromSavedValue = true;
 
         for (int i = 0; i < spinnerOptions.getAdapter().getCount(); i++) {
             Option option = (Option) spinnerOptions.getItemAtPosition(i);
@@ -103,8 +105,11 @@ public class DropdownMultiQuestionView extends AOptionQuestionView implements IQ
             @Override
             public void onItemSelected(AdapterView<?> parent, View v, int position, long id) {
                 Option option = (Option) parent.getItemAtPosition(position);
-
-                notifyAnswerChanged(option);
+                if (!optionSetFromSavedValue) {
+                    notifyAnswerChanged(option);
+                } else {
+                    optionSetFromSavedValue = false;
+                }
             }
 
             @Override

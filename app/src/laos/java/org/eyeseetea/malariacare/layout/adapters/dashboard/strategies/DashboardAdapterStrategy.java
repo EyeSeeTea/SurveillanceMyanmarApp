@@ -4,7 +4,7 @@ import android.content.Context;
 import android.view.View;
 
 import org.eyeseetea.malariacare.R;
-import org.eyeseetea.malariacare.database.model.Survey;
+import org.eyeseetea.malariacare.data.database.model.Survey;
 import org.eyeseetea.malariacare.layout.SurveyInfoUtils;
 import org.eyeseetea.malariacare.layout.adapters.dashboard.AssessmentAdapter;
 
@@ -26,5 +26,9 @@ public class DashboardAdapterStrategy implements IAssessmentAdapterStrategy {
                 SurveyInfoUtils.getRDTSymbol(mContext, survey));
 
         mAssessmentAdapter.showInfo(rowView, R.id.info, survey.getValuesToString());
+    }
+    @Override
+    public boolean hasAllComplementarySurveys(Survey malariaSurvey) {
+        return true;
     }
 }

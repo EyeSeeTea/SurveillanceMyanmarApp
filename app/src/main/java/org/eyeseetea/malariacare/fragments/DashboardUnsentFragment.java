@@ -38,9 +38,9 @@ import android.widget.BaseAdapter;
 import android.widget.ListView;
 
 import org.eyeseetea.malariacare.R;
-import org.eyeseetea.malariacare.database.model.Survey;
-import org.eyeseetea.malariacare.database.utils.PreferencesState;
-import org.eyeseetea.malariacare.database.utils.Session;
+import org.eyeseetea.malariacare.data.database.model.Survey;
+import org.eyeseetea.malariacare.data.database.utils.PreferencesState;
+import org.eyeseetea.malariacare.data.database.utils.Session;
 import org.eyeseetea.malariacare.layout.adapters.dashboard.AssessmentAdapter;
 import org.eyeseetea.malariacare.layout.listeners.SwipeDismissListViewTouchListener;
 import org.eyeseetea.malariacare.layout.utils.LayoutUtils;
@@ -62,6 +62,7 @@ public class DashboardUnsentFragment extends ListFragment implements IDashboardF
     protected AssessmentAdapter adapter;
     private SurveyReceiver surveyReceiver;
     private List<Survey> surveys;
+    private boolean viewCreated = false;
 
     public DashboardUnsentFragment() {
         this.surveys = new ArrayList();
@@ -80,6 +81,7 @@ public class DashboardUnsentFragment extends ListFragment implements IDashboardF
         if (container == null) {
             return null;
         }
+        viewCreated = true;
 
         return super.onCreateView(inflater, container, savedInstanceState);
     }
@@ -127,6 +129,12 @@ public class DashboardUnsentFragment extends ListFragment implements IDashboardF
         unregisterFragmentReceiver();
 
         super.onStop();
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        viewCreated = false;
     }
 
     /**
@@ -250,8 +258,10 @@ public class DashboardUnsentFragment extends ListFragment implements IDashboardF
             }
         }
         this.adapter.notifyDataSetChanged();
-        LayoutUtils.measureListViewHeightBasedOnChildren(getListView());
-        setListShown(true);
+        if (viewCreated) {
+            LayoutUtils.measureListViewHeightBasedOnChildren(getListView());
+            setListShown(true);
+        }
     }
 
 

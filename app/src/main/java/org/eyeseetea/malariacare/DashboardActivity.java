@@ -27,8 +27,9 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.drawable.Drawable;
-import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
@@ -38,14 +39,10 @@ import android.widget.LinearLayout;
 import android.widget.TabHost;
 import android.widget.TabWidget;
 
-import org.eyeseetea.malariacare.database.model.Question;
-import org.eyeseetea.malariacare.database.model.Survey;
-import org.eyeseetea.malariacare.database.utils.PreferencesState;
-import org.eyeseetea.malariacare.database.utils.Session;
-import org.eyeseetea.malariacare.database.utils.populatedb.PopulateDB;
-import org.eyeseetea.malariacare.domain.entity.Credentials;
-import org.eyeseetea.malariacare.domain.usecase.CompletionSurveyUseCase;
-import org.eyeseetea.malariacare.domain.usecase.LoginUseCase;
+import org.eyeseetea.malariacare.data.database.model.Question;
+import org.eyeseetea.malariacare.data.database.model.Survey;
+import org.eyeseetea.malariacare.data.database.utils.PreferencesState;
+import org.eyeseetea.malariacare.data.database.utils.Session;
 import org.eyeseetea.malariacare.fragments.DashboardSentFragment;
 import org.eyeseetea.malariacare.fragments.DashboardUnsentFragment;
 import org.eyeseetea.malariacare.fragments.MonitorFragment;
@@ -72,6 +69,7 @@ public class DashboardActivity extends BaseActivity {
     ReviewFragment reviewFragment;
     SurveyFragment surveyFragment;
     DashboardActivityStrategy mDashboardActivityStrategy;
+    static Handler handler;
     /**
      * Flag that controls the fragment change animations
      */
@@ -95,9 +93,8 @@ public class DashboardActivity extends BaseActivity {
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
+        handler = new Handler(Looper.getMainLooper());
         mDashboardActivityStrategy = new DashboardActivityStrategy();
-        AsyncPopulateDB asyncPopulateDB = new AsyncPopulateDB(this);
-        asyncPopulateDB.execute((Void) null);
         dashboardActivity = this;
         setContentView(R.layout.tab_dashboard);
         Survey.removeInProgress();
@@ -162,6 +159,7 @@ public class DashboardActivity extends BaseActivity {
             tabHost.getTabWidget().getChildAt(i).setFocusable(false);
         }
 
+        getSurveysFromService();
     }
 
     public void setTabHostsWithText() {
@@ -194,7 +192,6 @@ public class DashboardActivity extends BaseActivity {
         setTab(context.getResources().getString(R.string.tab_tag_monitor), R.id.tab_monitor_layout,
                 context.getResources().getDrawable(R.drawable.tab_monitor));
     }
-
 
     /**
      * Sets a divider drawable and background.
@@ -457,6 +454,11 @@ public class DashboardActivity extends BaseActivity {
      * It is called when the user press back in a surveyFragment
      */
     private void onSurveyBackPressed() {
+        //// FIXME: 09/03/2017 Refactor. If the survey is loading the survey should be closed at the end
+        if(Session.isIsLoadingSurvey()){
+            Session.setShouldPressBackOnLoadSurvey(true);
+            return;
+        }
         Log.d(TAG, "onBackPressed");
         Survey survey = Session.getMalariaSurvey();
         if (!survey.isSent()) {
@@ -493,26 +495,31 @@ public class DashboardActivity extends BaseActivity {
      * After that, loads the Assess fragment(DashboardUnSentFragment) in the Assess tab.
      */
     public void closeSurveyFragment() {
-        boolean isSent = false;
-        isReadOnly = false;
-        isLoadingReview = false;
-        android.support.v7.app.ActionBar actionBar = this.getSupportActionBar();
-        LayoutUtils.setDashboardActionBar(actionBar);
-        tabHost.getTabWidget().setVisibility(View.VISIBLE);
-        ScoreRegister.clear();
-        if (Session.getMalariaSurvey() != null) {
-            isSent = Session.getMalariaSurvey().isSent();
-        }
-        if (isBackPressed) {
-            beforeExit();
-        }
-        surveyFragment.unregisterFragmentReceiver();
-        if (isSent) {
-            tabHost.setCurrentTabByTag(getResources().getString(R.string.tab_tag_improve));
-            initAssess();
-        } else {
-            initAssess();
-            unsentFragment.reloadData();
+        //FIXME: 09/03/2017  Refactor: This is used to prevent multiple open and close surveys crash
+        //The survey only can be closed when is load
+        if(!Session.isIsLoadingSurvey()) {
+            Session.setShouldPressBackOnLoadSurvey(false);
+            boolean isSent = false;
+            isReadOnly = false;
+            isLoadingReview = false;
+            android.support.v7.app.ActionBar actionBar = this.getSupportActionBar();
+            LayoutUtils.setDashboardActionBar(actionBar);
+            tabHost.getTabWidget().setVisibility(View.VISIBLE);
+            ScoreRegister.clear();
+            if (Session.getMalariaSurvey() != null) {
+                isSent = Session.getMalariaSurvey().isSent();
+            }
+            if (isBackPressed) {
+                beforeExit();
+            }
+            surveyFragment.unregisterFragmentReceiver();
+            if (isSent) {
+                tabHost.setCurrentTabByTag(getResources().getString(R.string.tab_tag_improve));
+                initAssess();
+            } else {
+                initAssess();
+                unsentFragment.reloadData();
+            }
         }
     }
 
@@ -537,26 +544,7 @@ public class DashboardActivity extends BaseActivity {
 
 
     public void beforeExit() {
-        Survey malariaSurvey = Session.getMalariaSurvey();
-        Survey stockSurvey = Session.getStockSurvey();
-        if (malariaSurvey != null) {
-            boolean isMalariaInProgress = malariaSurvey.isInProgress();
-            boolean isStockSurveyInProgress = stockSurvey.isInProgress();
-            malariaSurvey.getValuesFromDB();
-            stockSurvey.getValuesFromDB();
-            //Exit + InProgress -> delete
-            if (isBackPressed && (isMalariaInProgress || isStockSurveyInProgress)) {
-                if (isMalariaInProgress) {
-                    Session.setMalariaSurvey(null);
-                    malariaSurvey.delete();
-                }
-                if (isStockSurveyInProgress) {
-                    Session.setStockSurvey(null);
-                    stockSurvey.delete();
-                }
-                isBackPressed = false;
-            }
-        }
+        isBackPressed = mDashboardActivityStrategy.beforeExit(isBackPressed);
     }
 
     /**
@@ -576,7 +564,11 @@ public class DashboardActivity extends BaseActivity {
 
     public void sendSurvey(View view) {
         surveyFragment.mReviewMode = false;
-        sendSurvey();
+        if(!isReadOnly) {
+            sendSurvey();
+        } else {
+            closeSurveyFragment();
+        }
     }
 
     public void reviewSurvey(View view) {
@@ -584,14 +576,12 @@ public class DashboardActivity extends BaseActivity {
     }
 
     private void sendSurvey() {
-        Session.getMalariaSurvey().updateSurveyStatus();
-        Session.getStockSurvey().complete();
-        new CompletionSurveyUseCase().execute(Session.getMalariaSurvey().getId_survey());
+        mDashboardActivityStrategy.sendSurvey();
         closeSurveyFragment();
     }
 
     private void reviewSurvey() {
-        DashboardActivity.moveToQuestion = (Session.getMalariaSurvey().getValues().get(
+        DashboardActivity.moveToQuestion = (Session.getMalariaSurvey().getValuesFromDB().get(
                 0).getQuestion());
         hideReview();
     }
@@ -646,7 +636,6 @@ public class DashboardActivity extends BaseActivity {
       return   mDashboardActivityStrategy.isHistoricNewReceiptBalanceFragment(this);
     }
 
-
     private boolean isFragmentActive(Class fragmentClass, int layout) {
         Fragment currentFragment = this.getFragmentManager().findFragmentById(layout);
         if (currentFragment.getClass().equals(fragmentClass)) {
@@ -695,57 +684,35 @@ public class DashboardActivity extends BaseActivity {
         return isLoadingReview;
     }
 
-    /**
-     * Represents an asynchronous login/registration task used to authenticate
-     * the user.
-     */
-    public class AsyncPopulateDB extends AsyncTask<Void, Void, Exception> {
-
-        //User user;
-        DashboardActivity dashboardActivity;
-
-        AsyncPopulateDB(DashboardActivity dashboardActivity) {
-            this.dashboardActivity = dashboardActivity;
-        }
-
-        @Override
-        protected Exception doInBackground(Void... params) {
-            try {
-                if (!BuildConfig.multiuser) {
-                    Log.i(TAG, "Creating demo login from dashboard ...");
-                    LoginUseCase loginUseCase = new LoginUseCase(dashboardActivity);
-
-                    Credentials demoCrededentials = Credentials.createDemoCredentials();
-
-                    loginUseCase.execute(demoCrededentials);
-                }
-
-                PopulateDB.initDataIfRequired(getAssets());
-            } catch (Exception ex) {
-                Log.e(TAG, "Error initializing DB: ", ex);
-                return ex;
+    public void completeSurvey() {
+        mDashboardActivityStrategy.completeSurvey();
+        closeSurveyFragment();
+    }
+    //Show dialog exception from class without activity.
+    public static void showException(final String title, final String errorMessage) {
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                // Run your task here
+                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        String dialogTitle = "", dialogMessage = "";
+                        if (title != null) {
+                            dialogTitle = title;
+                        }
+                        if (errorMessage != null) {
+                            dialogMessage = errorMessage;
+                        }
+                        new AlertDialog.Builder(dashboardActivity)
+                                .setCancelable(false)
+                                .setTitle(dialogTitle)
+                                .setMessage(dialogMessage)
+                                .setNeutralButton(android.R.string.ok, null)
+                                .create().show();
+                    }
+                });
             }
-
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(final Exception exception) {
-            //Error
-            if (exception != null) {
-                new AlertDialog.Builder(DashboardActivity.this)
-                        .setTitle(R.string.dialog_title_error)
-                        .setMessage(exception.getMessage())
-                        .setNeutralButton(android.R.string.yes,
-                                new DialogInterface.OnClickListener() {
-                                    public void onClick(DialogInterface arg0, int arg1) {
-                                        finish();
-                                    }
-                                }).create().show();
-                return;
-            }
-
-            getSurveysFromService();
-        }
+        }, 1000);
     }
 }
