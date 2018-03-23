@@ -19,6 +19,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.channels.FileChannel;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -75,7 +76,58 @@ public class ExportData {
         if (compressedFile == null) {
             return null;
         }
-        return createEmailIntent(activity, compressedFile);
+        String intentMessage = "Local " + PreferencesState.getInstance().getContext().getString(
+                R.string.malaria_case_based_reporting)
+                + " " + PreferencesState.getInstance().getContext().getString(
+                R.string.db) + " " + getTime();
+        return createEmailIntent(activity, compressedFile, intentMessage);
+    }
+
+    public static Intent dumpAssetFileAndSendToIntent(Activity activity, String filename) {
+        File file = getFileFromAssets(filename, activity);
+        ExportData.removeDumpIfExist(activity);
+        File tempFolder = new File(getCacheDir() + "/" + EXPORT_DATA_FOLDER);
+        tempFolder.mkdir();
+        copyFile(file, new File(tempFolder, file.getName()));
+        //compress and send
+        File compressedFile = compressFolder(tempFolder);
+        if (compressedFile == null) {
+            return null;
+        }
+        String intentMessage = "Local " + PreferencesState.getInstance().getContext().getString(
+                R.string.malaria_case_based_reporting)
+                + " " + PreferencesState.getInstance().getContext().getString(
+                R.string.treatment_table_csv) + " " + getTime();
+        return createEmailIntent(activity, compressedFile, intentMessage);
+    }
+
+    private static String getTime() {
+        return new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(
+                Calendar.getInstance().getTime());
+    }
+
+    private static File getFileFromAssets(String filename, Activity activity) {
+
+        File f = new File(getCacheDir() + "/" + filename);
+        if (!f.exists()) {
+            try {
+
+                InputStream is = activity.getAssets().open(filename);
+                int size = is.available();
+                byte[] buffer = new byte[size];
+                is.read(buffer);
+                is.close();
+
+
+                FileOutputStream fos = new FileOutputStream(f);
+                fos.write(buffer);
+                fos.close();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        return f;
     }
 
     /**
@@ -231,15 +283,12 @@ public class ExportData {
     /**
      * This method create the email intent
      */
-    private static Intent createEmailIntent(Activity activity, File data) {
+    private static Intent createEmailIntent(Activity activity, File data, String message) {
         final Uri uri = FileProvider.getUriForFile(activity, BuildConfig.AuthoritiesProvider, data);
 
         final Intent chooser = ShareCompat.IntentBuilder.from(activity)
                 .setType("application/zip")
-                .setSubject("Local " + PreferencesState.getInstance().getContext().getString(
-                        R.string.malaria_case_based_reporting)
-                        + " db " + new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(
-                        Calendar.getInstance().getTime()))
+                .setSubject(message)
                 .setStream(uri)
                 .setChooserTitle(
                         activity.getResources().getString(R.string.export_data_option_title))
