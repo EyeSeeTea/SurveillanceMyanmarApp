@@ -85,7 +85,7 @@ public class EyeSeeTeaApplication extends Application {
                 .setLoggingEnabled(BuildConfig.DEBUG)
                 .setAlertDialogType(AlertDialogType.APP_COMPAT)
                 .setGitHubInfo(new GitHubConfiguration(
-                        "eyeseetea/pictureapp",
+                        "eyeseetea/SurveillanceMyanmarApp",
                         BuildConfig.GIT_HUB_BOT_TOKEN,
                         "eyeseeteabottest/snapshots",
                         "master"))
