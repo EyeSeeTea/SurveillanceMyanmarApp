@@ -361,6 +361,8 @@ public class Survey extends BaseModel implements VisitableToSDK {
                                 .and(Survey_Table.status.withTable(surveyAlias)
                                         .is(Constants.SURVEY_SENT))
                                 .or(Survey_Table.status.withTable(surveyAlias)
+                                        .is(Constants.SURVEY_CONFLICT))
+                                .or(Survey_Table.status.withTable(surveyAlias)
                                         .is(Constants.SURVEY_QUARANTINE))))
                 .orderBy(Survey_Table.event_date, false).queryList();
     }
@@ -962,6 +964,10 @@ public class Survey extends BaseModel implements VisitableToSDK {
 
         Program program = Program.getFirstProgram();
         Tab tab = program.getTabs().get(0);
+        if(tab.isMultiQuestionTab()){
+            //First parent is calculated when tab is multiquestiontab
+            numRequired=0;
+        }
         Question rootQuestion = Question.findRootQuestion(tab);
         Question localQuestion = rootQuestion;
         while (localQuestion.getSibling() != null) {
