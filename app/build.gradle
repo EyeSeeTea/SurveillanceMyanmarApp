@@ -97,7 +97,7 @@ android {
             buildConfigField "String", "AuthoritiesProvider", "\"org.eyeseetea.malariacare.data.database.utils.LADBProvider\""
         }
         myanmar {
-            applicationId 'org.eyeseetea.surveillance_mm_dev'
+            applicationId 'org.eyeseetea.surveillance_mm__bb'
             versionName "1.0.6"
             buildConfigField "boolean", "reviewScreen", "true"
             buildConfigField "boolean", "activeSwipeNavigator", "false"
